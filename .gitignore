@@ -1,0 +1,23 @@
+
+# WAMP / System
+Thumbs.db
+Desktop.ini
+
+# VS Code
+.vscode/
+
+# Environment / Configs (Sensitive)
+# config/database.php # User requested to push "code", generally we shouldn't push db creds but for this specific request usually users want the whole thing. I'll include it but warn.
+# Actually, for a student project/defense, they usually want everything. 
+# I will NOT ignore database.php for now unless instructed, but I will ignore uploaded assets to save bandwidth.
+
+# Uploads
+uploads/
+*.log
+
+# Vendor
+vendor/
+node_modules/
+
+# OS
+.DS_Store

@@ -1,0 +1,233 @@
+openapi: 3.0.3
+info:
+  title: NHTSA vPIC Vehicles API
+  description: >
+    OpenAPI specification for the NHTSA Vehicle Product Information Catalog (vPIC) API.
+    Provides VIN decoding, manufacturer, make, model, and vehicle specification data.
+  version: 1.0.0
+  contact:
+    name: NHTSA
+    url: https://vpic.nhtsa.dot.gov/api/
+
+servers:
+  - url: https://vpic.nhtsa.dot.gov/api
+    description: Production server
+
+paths:
+
+  /vehicles/DecodeVin/{vin}:
+    get:
+      summary: Decode a VIN
+      description: Decode a full or partial VIN into key-value vehicle attributes.
+      parameters:
+        - name: vin
+          in: path
+          required: true
+          description: VIN (full or partial, `*` allowed for unknown characters)
+          schema:
+            type: string
+        - name: modelyear
+          in: query
+          required: false
+          description: Model year of the vehicle
+          schema:
+            type: integer
+        - name: format
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [json, xml, csv]
+            default: json
+      responses:
+        "200":
+          description: VIN decoded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /vehicles/DecodeVinValues/{vin}:
+    get:
+      summary: Decode VIN (Flat Format)
+      description: Decode VIN and return a flat key-value structure.
+      parameters:
+        - name: vin
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modelyear
+          in: query
+          schema:
+            type: integer
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, xml, csv]
+      responses:
+        "200":
+          description: VIN decoded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlatDecodeResponse"
+
+  /vehicles/DecodeVinExtended/{vin}:
+    get:
+      summary: Decode VIN (Extended)
+      description: Decode VIN with additional NHTSA program variables.
+      parameters:
+        - name: vin
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: modelyear
+          in: query
+          schema:
+            type: integer
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, xml, csv]
+      responses:
+        "200":
+          description: Extended VIN decoded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /vehicles/GetAllMakes:
+    get:
+      summary: Get all vehicle makes
+      parameters:
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, xml, csv]
+      responses:
+        "200":
+          description: List of all vehicle makes
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /vehicles/GetModelsForMake/{make}:
+    get:
+      summary: Get models for a make
+      parameters:
+        - name: make
+          in: path
+          required: true
+          description: Vehicle make (partial or full)
+          schema:
+            type: string
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, xml, csv]
+      responses:
+        "200":
+          description: Models retrieved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /vehicles/GetManufacturerDetails/{manufacturer}:
+    get:
+      summary: Get manufacturer details
+      parameters:
+        - name: manufacturer
+          in: path
+          required: true
+          description: Manufacturer ID or name
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, xml, csv]
+      responses:
+        "200":
+          description: Manufacturer details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /vehicles/GetCanadianVehicleSpecifications:
+    get:
+      summary: Get Canadian vehicle specifications
+      parameters:
+        - name: year
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1971
+        - name: make
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: model
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: units
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [Metric, US]
+            default: Metric
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, xml, csv]
+      responses:
+        "200":
+          description: Canadian vehicle specifications returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+components:
+  schemas:
+
+    ApiResponse:
+      type: object
+      properties:
+        Count:
+          type: integer
+        Message:
+          type: string
+        SearchCriteria:
+          type: string
+        Results:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+
+    FlatDecodeResponse:
+      type: object
+      additionalProperties:
+        type: string
