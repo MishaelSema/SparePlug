@@ -34,8 +34,8 @@ ob_start();
 <div class="bg-gray-50 min-h-screen py-12">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
-            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl font-heading">Get in Touch</h1>
-            <p class="mt-4 text-lg text-gray-500">Have questions about buying or selling? We're here to help.</p>
+            <h1 class="text-3xl font-extrabold text-gray-900 sm:text-4xl font-heading" data-translate="getInTouch">Get in Touch</h1>
+            <p class="mt-4 text-lg text-gray-500" data-translate="contactSubtitle">Have questions about buying or selling? We're here to help.</p>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">

@@ -9,12 +9,28 @@ $reviewObj = new Review();
 
 $product = $productObj->getById($id);
 
+// Get payment settings for modal
+$paymentSettings = [];
+$settingsData = $db->fetchAll("SELECT setting_key, setting_value FROM settings");
+foreach ($settingsData as $s) {
+    $paymentSettings[$s['setting_key']] = $s['setting_value'];
+}
+
+$currentUser = $user->getCurrentUser();
+
 if (!$product) {
     header('Location: index.php?page=404');
     exit;
 }
 
 $pageTitle = $product['title'];
+// Set Open Graph Data
+$images = json_decode($product['images'], true);
+$mainImage = !empty($images) ? $images[0] : 'assets/placeholder-product.jpg';
+// Convert relative image path to absolute URL for OG tags
+$protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+$pageImage = $protocol . '://' . $_SERVER['HTTP_HOST'] . dirname($_SERVER['SCRIPT_NAME']) . '/' . $mainImage;
+$pageDescription = substr(strip_tags($product['description']), 0, 160) . '... | Price: ' . number_format($product['price']) . ' FCFA';
 
 // Increment views (session-based)
 if (!isset($_SESSION['viewed_products'])) {
@@ -77,7 +93,7 @@ ob_start();
 <div class="bg-white border-b border-gray-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div class="text-sm text-gray-500">
-            <a href="index.php" class="hover:text-accent">Home</a> 
+            <a href="index.php" class="hover:text-accent" data-translate="home">Home</a> 
             <span class="mx-2">/</span>
             <a href="index.php?page=search&category=<?php echo $product['category_id']; ?>" class="hover:text-accent"><?php echo htmlspecialchars($product['category_name']); ?></a>
             <span class="mx-2">/</span>
@@ -123,7 +139,7 @@ ob_start();
             
             <!-- Description -->
             <div class="bg-white rounded-2xl p-8 shadow-sm border border-gray-100 mt-8">
-                <h2 class="text-2xl font-bold text-gray-900 mb-6 font-heading">Product Description</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-6 font-heading" data-translate="description">Product Description</h2>
                 <div class="prose prose-blue max-w-none text-gray-600 leading-relaxed">
                     <?php echo nl2br(htmlspecialchars($product['description'])); ?>
                 </div>
@@ -141,21 +157,21 @@ ob_start();
                         <div class="bg-gray-50 rounded-2xl p-4 flex flex-wrap gap-4 flex-col items-start md:flex-row">
                             <?php if(!empty($comp['year'])): ?>
                             <div class="flex flex-col">
-                                <span class="text-xs text-gray-400">Year</span>
+                                <span class="text-xs text-gray-400" data-translate="year">Year</span>
                                 <span class="font-bold text-gray-900"><?php echo htmlspecialchars($comp['year']); ?></span>
                             </div>
                             <?php endif; ?>
                             
                             <?php if(!empty($comp['make'])): ?>
                             <div class="flex flex-col md:border-l border-gray-200 md:pl-4">
-                                <span class="text-xs text-gray-400">Make</span>
+                                <span class="text-xs text-gray-400" data-translate="make">Make</span>
                                 <span class="font-bold text-gray-900"><?php echo htmlspecialchars($comp['make']); ?></span>
                             </div>
                             <?php endif; ?>
                             
                             <?php if(!empty($comp['model'])): ?>
                             <div class="flex flex-col md:border-l border-gray-200 md:pl-4">
-                                <span class="text-xs text-gray-400">Model</span>
+                                <span class="text-xs text-gray-400" data-translate="model">Model</span>
                                 <span class="font-bold text-gray-900"><?php echo htmlspecialchars($comp['model']); ?></span>
                             </div>
                             <?php endif; ?>
@@ -179,7 +195,7 @@ ob_start();
                         <div class="flex text-yellow-500 text-sm">
                             <?php for($i=1; $i<=5; $i++) echo ($i <= round($avgRating['average'])) ? '★' : '<span class="text-gray-200">★</span>'; ?>
                         </div>
-                        <span class="text-gray-400 text-sm border-l pl-4 border-gray-200"><?php echo count($reviews); ?> Reviews</span>
+                        <span class="text-gray-400 text-sm border-l pl-4 border-gray-200"><?php echo count($reviews); ?> <span data-translate="reviewsLabel">Reviews</span></span>
                         <span class="text-gray-400 text-sm border-l pl-4 border-gray-200"><?php echo $product['views_count']; ?> Views</span>
                     </div>
                     
@@ -201,24 +217,39 @@ ob_start();
                     <?php endif; ?>
                     
                     <div class="mt-8 space-y-3">
+                        <!-- Order Now Button -->
+                        <?php if (!$isOwner && $user->isLoggedIn()): ?>
+                        <button onclick="document.getElementById('orderModal').classList.remove('hidden')" 
+                                class="w-full bg-accent hover:bg-accent-hover text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                            Order Now - Secure Payment
+                        </button>
+                        <?php elseif (!$isOwner && !$user->isLoggedIn()): ?>
+                        <a href="index.php?page=login&redirect=<?php echo urlencode('index.php?page=product&id=' . $id); ?>" 
+                           class="w-full bg-accent hover:bg-accent-hover text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                            Login to Order
+                        </a>
+                        <?php endif; ?>
+                        
                         <button onclick="openWhatsApp('<?php echo $seller['phone']; ?>', 'Hi, I am interested in <?php echo htmlspecialchars($product['title']); ?>')" 
                                 <?php echo $isOwner ? 'disabled title="You cannot buy your own product"' : ''; ?>
                                 class="w-full <?php echo $isOwner ? 'bg-gray-300 cursor-not-allowed' : 'bg-[#25D366] hover:bg-[#128C7E]'; ?> text-white font-bold py-4 rounded-xl shadow-lg transition-all flex items-center justify-center gap-3">
                             <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.008-.57-.008-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/></svg>
-                            Chat on WhatsApp
+                            <span data-translate="whatsapp">Chat on WhatsApp</span>
                         </button>
                         
                         <div class="grid grid-cols-2 gap-3">
                              <button onclick="makeCall('<?php echo $seller['phone']; ?>')" 
                                      <?php echo $isOwner ? 'disabled' : ''; ?>
                                      class="py-3 rounded-xl border-2 <?php echo $isOwner ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-primary text-primary hover:bg-primary hover:text-white'; ?> font-bold transition-colors">
-                                Call Seller
+                                <span data-translate="callSeller">Call Seller</span>
                             </button>
                             <!-- Inquiry Modal Trigger -->
                             <button onclick="<?php echo $isOwner ? 'return false;' : "document.getElementById('inquiryModal').classList.remove('hidden')"; ?>" 
                                     <?php echo $isOwner ? 'disabled' : ''; ?>
                                     class="py-3 rounded-xl <?php echo $isOwner ? 'bg-gray-100 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'; ?> font-bold transition-colors">
-                                Send Message
+                                <span data-translate="sendMessage">Send Message</span>
                             </button>
                         </div>
                     </div>
@@ -226,7 +257,7 @@ ob_start();
                 
                 <!-- Seller Profile Card -->
                 <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h3 class="font-bold text-gray-900 mb-4">Sold By</h3>
+                    <h3 class="font-bold text-gray-900 mb-4" data-translate="soldBy">Sold By</h3>
                     <div class="flex items-center gap-4 mb-4">
                         <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-2xl">
                             <?php echo strtoupper(substr($seller['business_name'], 0, 1)); ?>
@@ -244,7 +275,7 @@ ob_start();
                         <span class="capitalize"><?php echo htmlspecialchars($seller['city'] . ', ' . $seller['region']); ?></span>
                     </div>
                     
-                    <a href="index.php?page=vendor-profile&id=<?php echo $seller['id']; ?>" class="block w-full text-center mt-4 text-accent font-medium hover:underline">
+                    <a href="index.php?page=vendor-profile&id=<?php echo $seller['id']; ?>" class="block w-full text-center mt-4 text-accent font-medium hover:underline" data-translate="viewVendorProfile">
                         View Vendor Profile
                     </a>
                 </div>
@@ -257,7 +288,7 @@ ob_start();
                     </div>
                     <h3 class="font-bold text-gray-900 mb-2 flex items-center gap-2">
                         <svg class="w-5 h-5 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                        Safety Tips
+                        <span data-translate="safetyTips">Safety Tips</span>
                     </h3>
                     <ul class="text-sm text-gray-700 space-y-3 relative z-10">
                         <li class="flex items-start gap-2">
@@ -283,14 +314,14 @@ ob_start();
     <div class="mt-16 bg-white rounded-2xl p-8 shadow-sm border border-gray-100">
         <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 pb-8 border-b border-gray-100">
             <div>
-                <h2 class="text-2xl font-bold text-gray-900 mb-2">Customer Reviews</h2>
+                <h2 class="text-2xl font-bold text-gray-900 mb-2" data-translate="customerReviews">Customer Reviews</h2>
                 <div class="flex items-center gap-4 flex-col md:flex-row">
                     <div class="flex text-yellow-500">
                         <?php for($i=1; $i<=5; $i++) echo ($i <= round($avgRating['average'])) ? '★' : '<span class="text-gray-200">★</span>'; ?>
                     </div>
                     <span class="text-gray-500 font-medium"><?php echo $avgRating['average']; ?> out of 5</span>
                     <span class="text-gray-300">•</span>
-                    <span class="text-gray-500"><?php echo $avgRating['total']; ?> Reviews</span>
+                    <span class="text-gray-500"><?php echo $avgRating['total']; ?> <span data-translate="reviewsLabel">Reviews</span></span>
                 </div>
             </div>
             
@@ -298,12 +329,12 @@ ob_start();
                 <?php if ($isOwner): ?>
                     <span class="text-blue-500 font-medium bg-blue-50 px-4 py-2 rounded-full">Owner View</span>
                 <?php else: ?>
-                    <button onclick="document.getElementById('reviewForm').classList.toggle('hidden')" class="btn-primary">
+                    <button onclick="document.getElementById('reviewForm').classList.toggle('hidden')" class="btn-primary" data-translate="writeReview">
                         Write a Review
                     </button>
                 <?php endif; ?>
             <?php else: ?>
-                <a href="index.php?page=login" class="text-accent font-semibold hover:underline">Log in to write a review</a>
+                <a href="index.php?page=login" class="text-accent font-semibold hover:underline" data-translate="loginToReview">Log in to write a review</a>
             <?php endif; ?>
         </div>
 
@@ -423,7 +454,296 @@ function openWhatsApp(phone, message) {
 function makeCall(phone) {
     window.location.href = `tel:${phone}`;
 }
+
+// Order Modal
+function closeOrderModal() {
+    document.getElementById('orderModal').classList.add('hidden');
+}
+
+function submitOrder() {
+    // Check phone only if user is logged in
+    const isLoggedIn = <?php echo $user->isLoggedIn() ? 'true' : 'false'; ?>;
+    const userPhone = '<?php echo trim(($currentUser['phone'] ?? '')); ?>';
+    
+    if (isLoggedIn && !userPhone) {
+        document.getElementById('phoneRequiredModal').classList.remove('hidden');
+        return;
+    }
+    
+    // Validate guest fields if not logged in
+    if (!isLoggedIn) {
+        const guestName = document.getElementById('guest_name').value.trim();
+        const guestEmail = document.getElementById('guest_email').value.trim();
+        const guestPhone = document.getElementById('guest_phone').value.trim();
+        
+        if (!guestName || !guestEmail || !guestPhone) {
+            alert('Please fill in your name, email and phone to place an order.');
+            return;
+        }
+    }
+    
+    // Disable button to prevent double-submit
+    const btn = document.getElementById('confirmOrderBtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Processing...';
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+    
+    const deliveryMethod = document.querySelector('input[name="delivery_method"]:checked').value;
+    const paymentMethod = document.querySelector('input[name="payment_method"]:checked').value;
+    const notes = document.getElementById('order_notes').value;
+    const quantity = parseInt(document.getElementById('quantity').value) || 1;
+    
+    const formData = new FormData();
+    formData.append('product_id', <?php echo $product['id']; ?>);
+    formData.append('vendor_id', <?php echo $product['vendor_id']; ?>);
+    formData.append('quantity', quantity);
+    formData.append('delivery_method', deliveryMethod);
+    formData.append('payment_method', paymentMethod);
+    formData.append('notes', notes);
+    
+    // Add guest info if not logged in
+    const isLoggedIn = <?php echo $user->isLoggedIn() ? 'true' : 'false'; ?>;
+    if (!isLoggedIn) {
+        formData.append('guest_name', document.getElementById('guest_name').value);
+        formData.append('guest_email', document.getElementById('guest_email').value);
+        formData.append('guest_phone', document.getElementById('guest_phone').value);
+    }
+    
+    fetch('api/place-order.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            showOrderSuccessModal(data);
+        } else {
+            alert('Error: ' + data.message);
+            // Re-enable button on error
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Confirm Order';
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        }
+    })
+    .catch(err => {
+        console.error('Order error:', err);
+        alert('Error submitting order. Please try again.');
+        // Re-enable button on error
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Confirm Order';
+            btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
+    });
+}
+
+function showOrderSuccessModal(data) {
+    const modal = document.getElementById('orderSuccessModal');
+    document.getElementById('success_order_number').textContent = data.order_number;
+    document.getElementById('success_amount').textContent = document.getElementById('order_total').textContent;
+    
+    // Hide all, show selected
+    document.getElementById('momo_details').classList.add('hidden');
+    document.getElementById('orange_details').classList.add('hidden');
+    document.getElementById('cash_details').classList.add('hidden');
+    
+    if (data.payment_method === 'momo') {
+        document.getElementById('momo_details').classList.remove('hidden');
+    } else if (data.payment_method === 'orange_money') {
+        document.getElementById('orange_details').classList.remove('hidden');
+    } else {
+        document.getElementById('cash_details').classList.remove('hidden');
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function closeSuccessModal() {
+    document.getElementById('orderSuccessModal').classList.add('hidden');
+    window.location.href = 'index.php?page=my-orders';
+}
+
+function updateOrderTotal() {
+    const quantity = parseInt(document.getElementById('quantity').value) || 1;
+    const unitPrice = <?php echo $product['price']; ?>;
+    const total = quantity * unitPrice;
+    document.getElementById('order_total').textContent = total.toLocaleString() + ' XAF';
+}
 </script>
+
+<!-- Order Modal -->
+<div id="orderModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Place Order</h2>
+                <button onclick="closeOrderModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+            
+            <div class="bg-gray-50 rounded-xl p-4 mb-6">
+                <h3 class="font-bold text-gray-900"><?php echo htmlspecialchars($product['title']); ?></h3>
+                <p class="text-accent font-bold text-xl"><?php echo number_format($product['price']); ?> XAF</p>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Quantity</label>
+                    <input type="number" id="quantity" value="1" min="1" max="10" onchange="updateOrderTotal()" class="input-modern">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Delivery Method</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center">
+                            <input type="radio" name="delivery_method" value="pickup" checked class="text-accent">
+                            <span class="ml-2">Pickup from vendor's location</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="delivery_method" value="delivery" class="text-accent">
+                            <span class="ml-2">Delivery (additional fees may apply)</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Payment Method</label>
+                    <div class="space-y-2">
+                        <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="payment_method" value="momo" checked class="text-accent">
+                            <div class="ml-3">
+                                <span class="font-medium">MTN MoMo</span>
+                                <p class="text-sm text-gray-500">Pay via MTN Mobile Money</p>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="payment_method" value="orange_money" class="text-accent">
+                            <div class="ml-3">
+                                <span class="font-medium">Orange Money</span>
+                                <p class="text-sm text-gray-500">Pay via Orange Mobile Money</p>
+                            </div>
+                        </label>
+                        <label class="flex items-center p-3 border rounded-xl cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="payment_method" value="cash" class="text-accent">
+                            <div class="ml-3">
+                                <span class="font-medium">Cash on Pickup</span>
+                                <p class="text-sm text-gray-500">Pay when you collect the item</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>
+                    <textarea id="order_notes" rows="3" class="input-modern" placeholder="Any special requests..."></textarea>
+                </div>
+                
+                <?php if (!$user->isLoggedIn()): ?>
+                <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                    <p class="text-sm text-yellow-800 font-medium mb-3">Guest Checkout - No account required</p>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Full Name</label>
+                            <input type="text" id="guest_name" class="input-modern" placeholder="John Doe" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" id="guest_email" class="input-modern" placeholder="john@example.com" required>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Phone (for order updates)</label>
+                            <input type="tel" id="guest_phone" class="input-modern" placeholder="+237 XXX XXX XXX" required>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+                
+                <div class="bg-accent/10 p-4 rounded-xl">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold text-gray-900">Total:</span>
+                        <span id="order_total" class="text-xl font-bold text-accent"><?php echo number_format($product['price']); ?> XAF</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Secure escrow payment. Your money is held until you confirm receipt.</p>
+                </div>
+            </div>
+            
+            <button onclick="submitOrder()" id="confirmOrderBtn" class="btn-primary w-full mt-6">
+                Confirm Order
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Order Success Modal -->
+<div id="orderSuccessModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-8 text-center">
+        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
+        
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">Order Placed!</h2>
+        <p class="text-gray-600 mb-6">Order #<span id="success_order_number" class="font-bold"></span></p>
+        
+        <div class="bg-gray-50 rounded-xl p-4 mb-4 text-left">
+            <p class="text-gray-600 mb-4">Please transfer <span id="success_amount" class="font-bold text-accent"></span> to:</p>
+            
+            <div id="momo_details" class="hidden">
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p class="text-xs text-blue-600 font-bold uppercase mb-2">MTN MoMo</p>
+                    <p class="text-2xl font-bold text-blue-900"><?php echo htmlspecialchars($paymentSettings['momo_number'] ?? 'Set by admin'); ?></p>
+                    <p class="text-sm text-blue-700 mt-1">Name: <?php echo htmlspecialchars($paymentSettings['momo_name'] ?? ''); ?></p>
+                </div>
+            </div>
+            
+            <div id="orange_details" class="hidden">
+                <div class="bg-orange-50 border border-orange-200 rounded-lg p-4 mt-3">
+                    <p class="text-xs text-orange-600 font-bold uppercase mb-2">Orange Money</p>
+                    <p class="text-2xl font-bold text-orange-900"><?php echo htmlspecialchars($paymentSettings['orange_number'] ?? 'Set by admin'); ?></p>
+                    <p class="text-sm text-orange-700 mt-1">Name: <?php echo htmlspecialchars($paymentSettings['orange_name'] ?? ''); ?></p>
+                </div>
+            </div>
+            
+            <div id="cash_details" class="hidden">
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <p class="text-sm text-green-800">Pay when you pick up the item from the vendor's location.</p>
+                </div>
+            </div>
+        </div>
+        
+        <button onclick="document.getElementById('orderSuccessModal').classList.add('hidden'); window.location.href='index.php?page=my-orders';" class="btn-primary w-full mb-3">
+            View My Orders
+        </button>
+        <button onclick="document.getElementById('orderSuccessModal').classList.add('hidden'); document.getElementById('orderModal').classList.add('hidden');" class="text-gray-500 text-sm hover:text-gray-700">
+            Close
+        </button>
+    </div>
+</div>
+    </div>
+</div>
+
+<!-- Phone Required Modal -->
+<div id="phoneRequiredModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 text-center">
+        <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+        </div>
+        <h3 class="text-lg font-bold text-gray-900 mb-2">Phone Number Required</h3>
+        <p class="text-gray-600 mb-6">Please add your phone number to your profile before placing an order.</p>
+        <div class="flex gap-3">
+            <button onclick="document.getElementById('phoneRequiredModal').classList.add('hidden')" class="btn-secondary flex-1">Cancel</button>
+            <a href="index.php?page=profile" class="btn-primary flex-1">Add Phone</a>
+        </div>
+    </div>
+</div>
 
 <?php
 $content = ob_get_clean();

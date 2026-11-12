@@ -31,11 +31,11 @@ ob_start();
                 <!-- Subtitle removed -->
                 
                 <h1 class="text-5xl lg:text-7xl font-bold text-white leading-tight font-heading">
-                    Find the Perfect <br />
-                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-500">Parts for Your Ride</span>
+                    <span data-translate="findPerfect">Find the Perfect</span> <br />
+                    <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-400 to-orange-500"><span data-translate="partsForYourRide">Parts for Your Ride</span></span>
                 </h1>
                 
-                <p class="text-xl text-gray-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                <p class="text-xl text-gray-300 max-w-2xl mx-auto lg:mx-0 leading-relaxed" data-translate="connectDirect">
                     Connect directly with verified vendors. Get quality spare parts delivered or picked up instantly. fast, secure, and reliable.
                 </p>
                 
@@ -47,7 +47,7 @@ ob_start();
                         <!-- Year -->
                         <div class="relative min-w-0">
                             <select name="year" id="year-select" class="w-full pl-3 pr-8 py-3 bg-gray-100/50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-accent transition-all appearance-none truncate">
-                                <option value="">Year</option>
+                                <option value="" data-translate="year">Year</option>
                                 <?php for($y = date('Y') + 1; $y >= 1990; $y--): ?>
                                     <option value="<?php echo $y; ?>"><?php echo $y; ?></option>
                                 <?php endfor; ?>
@@ -60,7 +60,7 @@ ob_start();
                         <!-- Make -->
                         <div class="relative min-w-0">
                             <select name="make" id="make-select" class="w-full pl-3 pr-8 py-3 bg-gray-100/50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-accent transition-all appearance-none truncate">
-                                <option value="">Make</option>
+                                <option value="" data-translate="make">Make</option>
                             </select>
                             <div id="make-loader" class="hidden absolute right-3 top-3.5">
                                 <div class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
@@ -70,7 +70,7 @@ ob_start();
                         <!-- Model -->
                         <div class="relative min-w-0">
                             <select name="model" id="model-select" class="w-full pl-3 pr-8 py-3 bg-gray-100/50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-accent transition-all appearance-none truncate">
-                                <option value="">Model</option>
+                                <option value="" data-translate="model">Model</option>
                             </select>
                             <div id="model-loader" class="hidden absolute right-3 top-3.5">
                                 <div class="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin"></div>
@@ -79,12 +79,12 @@ ob_start();
 
                         <!-- Part Name -->
                         <div class="relative col-span-1">
-                            <input type="text" name="q" placeholder="Part name..." 
+                            <input type="text" name="q" placeholder="Part name..." data-translate-placeholder="partName"
                                    class="w-full pl-4 pr-4 py-3 bg-gray-100/50 border-none rounded-2xl text-sm font-medium focus:ring-2 focus:ring-accent transition-all">
                         </div>
 
-                        <button type="submit" class="bg-accent hover:bg-accent-hover text-white py-3 rounded-2xl font-bold transition-all shadow-lg shadow-red-500/30 hover:-translate-y-0.5 active:translate-y-0">
-                            Explore
+                        <button type="submit" class="bg-accent hover:bg-accent-hover text-white py-3 rounded-2xl font-bold transition-all shadow-lg shadow-red-500/30 hover:-translate-y-0.5 active:translate-y-0 col-span-2 md:col-span-1">
+                            <span data-translate="explore">Explore</span>
                         </button>
                     </form>
                 </div>
@@ -101,7 +101,7 @@ ob_start();
 <section class="py-20 bg-gray-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-gray-900 mb-2 font-heading">Shop by Category</h2>
+            <h2 class="text-3xl font-bold text-gray-900 mb-2 font-heading" data-translate="shopByCategory">Shop by Category</h2>
             <div class="w-16 h-1 bg-accent mx-auto rounded-full"></div>
         </div>
         
@@ -115,11 +115,85 @@ ob_start();
                     <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
                     
                     <div class="absolute inset-0 p-6 flex flex-col justify-end">
-                        <span class="text-[10px] font-bold text-accent uppercase tracking-widest mb-2 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500">Explore Parts</span>
+                        <span class="text-[10px] font-bold text-accent uppercase tracking-widest mb-2 opacity-0 group-hover:opacity-100 transform translate-y-4 group-hover:translate-y-0 transition-all duration-500" data-translate="exploreParts">Explore Parts</span>
                         <h3 class="font-bold text-white text-lg group-hover:text-accent transition-colors duration-300 leading-tight"><?php echo htmlspecialchars($cat['name']); ?></h3>
                     </div>
                 </a>
             <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Popular Vehicle Makes -->
+<section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 mb-2 font-heading" data-translate="popularVehicleMakes">Popular Vehicle Makes</h2>
+            <div class="w-16 h-1 bg-accent mx-auto rounded-full"></div>
+            <p class="text-gray-500 mt-4" data-translate="findPartsFor">Find parts for the most popular cars in Cameroon</p>
+        </div>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <?php 
+            $popularMakes = ['Toyota', 'Honda', 'Nissan', 'Ford', 'BMW', 'Mercedes', 'Hyundai', 'Kia', 'Peugeot', 'Renault'];
+            $makeColors = [
+                'Toyota' => 'bg-red-600',
+                'Honda' => 'bg-blue-600', 
+                'Nissan' => 'bg-red-500',
+                'Ford' => 'bg-blue-700',
+                'BMW' => 'bg-blue-900',
+                'Mercedes' => 'bg-gray-700',
+                'Hyundai' => 'bg-blue-500',
+                'Kia' => 'bg-red-600',
+                'Peugeot' => 'bg-blue-500',
+                'Renault' => 'bg-yellow-500'
+            ];
+            foreach($popularMakes as $make): 
+            ?>
+                <a href="index.php?page=search&make=<?php echo urlencode($make); ?>" 
+                   class="group flex items-center gap-4 p-4 rounded-2xl border border-gray-200 hover:border-accent hover:shadow-lg transition-all">
+                    <div class="w-12 h-12 rounded-xl <?php echo $makeColors[$make] ?? 'bg-gray-600'; ?> flex items-center justify-center text-white font-bold text-lg shadow-md">
+                        <?php echo substr($make, 0, 1); ?>
+                    </div>
+                    <span class="font-bold text-gray-900 group-hover:text-accent transition-colors"><?php echo $make; ?></span>
+                </a>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+
+<!-- Why Choose SparePlug -->
+<section class="py-20 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 mb-2 font-heading" data-translate="whyChooseSparePlug">Why Choose SparePlug</h2>
+            <div class="w-16 h-1 bg-accent mx-auto rounded-full"></div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div class="bg-white p-8 rounded-3xl shadow-soft hover:shadow-xl transition-all text-center group">
+                <div class="w-16 h-16 mx-auto mb-6 bg-accent/10 rounded-2xl flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-colors">
+                    <svg class="w-8 h-8 text-accent group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3" data-translate="verifiedVendors">Verified Vendors</h3>
+                <p class="text-gray-500" data-translate="verifiedVendorsDesc">All sellers are verified to ensure authentic parts and trustworthy transactions.</p>
+            </div>
+            
+            <div class="bg-white p-8 rounded-3xl shadow-soft hover:shadow-xl transition-all text-center group">
+                <div class="w-16 h-16 mx-auto mb-6 bg-accent/10 rounded-2xl flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-colors">
+                    <svg class="w-8 h-8 text-accent group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3" data-translate="directCommunication">Direct Communication</h3>
+                <p class="text-gray-500" data-translate="directCommunicationDesc">Chat directly with sellers via WhatsApp, phone, or in-app messaging.</p>
+            </div>
+            
+            <div class="bg-white p-8 rounded-3xl shadow-soft hover:shadow-xl transition-all text-center group">
+                <div class="w-16 h-16 mx-auto mb-6 bg-accent/10 rounded-2xl flex items-center justify-center group-hover:bg-accent group-hover:text-white transition-colors">
+                    <svg class="w-8 h-8 text-accent group-hover:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-3" data-translate="fairPricing">Fair Pricing</h3>
+                <p class="text-gray-500" data-translate="fairPricingDesc">Compare prices across multiple vendors to get the best deal in XAF.</p>
+            </div>
         </div>
     </div>
 </section>
@@ -129,11 +203,11 @@ ob_start();
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between items-end mb-12">
             <div>
-                <h2 class="text-3xl font-bold text-gray-900 mb-2 font-heading">Featured Parts</h2>
+                <h2 class="text-3xl font-bold text-gray-900 mb-2 font-heading" data-translate="featuredParts">Featured Parts</h2>
                 <div class="w-16 h-1 bg-accent rounded-full"></div>
             </div>
             <a href="index.php?page=search" class="text-accent font-semibold hover:text-red-700 flex items-center gap-1">
-                View All <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                <span data-translate="viewAll">View All</span> <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
             </a>
         </div>
         
@@ -212,9 +286,9 @@ ob_start();
     <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10"></div>
     
     <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-white">
-        <h2 class="text-4xl lg:text-5xl font-bold mb-6 font-heading">Ready to Sell Your Parts?</h2>
+        <h2 class="text-4xl lg:text-5xl font-bold mb-6 font-heading" data-translate="readyToSell">Ready to Sell Your Parts?</h2>
         <p class="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">Join hundreds of verified vendors and reach thousands of car owners across Cameroon today.</p>
-        <a href="index.php?page=vendor-signup" class="inline-block bg-accent text-white font-bold text-lg px-10 py-4 rounded-xl shadow-glow hover:bg-accent-hover transform hover:-translate-y-1 transition-all duration-300">
+        <a href="index.php?page=vendor-signup" class="inline-block bg-accent text-white font-bold text-lg px-10 py-4 rounded-xl shadow-glow hover:bg-accent-hover transform hover:-translate-y-1 transition-all duration-300" data-translate="startSellingNow">
             Start Selling Now
         </a>
     </div>

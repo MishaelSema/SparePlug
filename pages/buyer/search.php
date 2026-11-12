@@ -30,10 +30,13 @@ $filters = [
     'condition' => $condition,
     'location' => $location,
     'page' => $page,
-    'limit' => 12
+    'limit' => 12,
+    'random' => true,
+    'offset' => ($page - 1) * 12
 ];
 
-// Get products
+$totalProducts = $product->getTotal($filters);
+$totalPages = ceil($totalProducts / $filters['limit']);
 $results = $product->getAll($filters);
 $allCategories = $category->getAll();
 // Vehicle data now fetched from API client-side
@@ -45,21 +48,31 @@ ob_start();
     <!-- Header -->
     <div class="mb-8 animate-fade-in-up">
         <h1 class="text-3xl font-bold text-gray-900 font-heading">
-            Search Results
+            <span data-translate="searchResults">Search Results</span>
             <?php if ($search): ?>
-                <span class="text-gray-500 font-normal text-xl">for "<?php echo htmlspecialchars($search); ?>"</span>
+                <span class="text-gray-500 font-normal text-xl" data-translate="for">for</span> "<?php echo htmlspecialchars($search); ?>"
             <?php endif; ?>
         </h1>
-        <p class="text-gray-500 mt-2">Found <?php echo count($results); ?> parts matching your criteria</p>
+        <p class="text-gray-500 mt-2"><?php echo $totalProducts; ?> <span data-translate="foundParts">parts matching your criteria</span></p>
     </div>
 
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        <!-- Sidebar Filters -->
+        <!-- Sidebar Filters - Collapsible on mobile -->
         <div class="lg:col-span-1">
-            <div class="bg-white p-6 rounded-2xl shadow-soft sticky top-24 border border-gray-100">
+            <!-- Mobile Toggle Button -->
+            <button id="filter-toggle" class="lg:hidden w-full flex items-center justify-between bg-white p-4 rounded-xl shadow-soft border border-gray-100 mb-4">
+                <span class="font-bold text-gray-900 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+                    <span data-translate="filters">Filters</span>
+                </span>
+                <svg id="filter-chevron" class="w-5 h-5 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </button>
+            
+            <!-- Filter Panel -->
+            <div id="filter-panel" class="bg-white p-6 rounded-2xl shadow-soft lg:sticky lg:top-24 border border-gray-100 hidden lg:block">
                 <div class="flex items-center justify-between mb-6">
-                    <h2 class="font-bold text-lg text-gray-900">Filters</h2>
-                    <a href="index.php?page=search" class="text-sm text-accent hover:underline">Reset</a>
+                    <h2 class="font-bold text-lg text-gray-900" data-translate="filters">Filters</h2>
+                    <a href="index.php?page=search" class="text-sm text-accent hover:underline" data-translate="reset">Reset</a>
                 </div>
 
                 <form action="index.php" method="GET" class="space-y-6">
@@ -68,9 +81,9 @@ ob_start();
                     
                     <!-- Category -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2" data-translate="category">Category</label>
                         <select name="category" class="input-modern bg-gray-50 text-sm">
-                            <option value="">All Categories</option>
+                            <option value="" data-translate="allCategories">All Categories</option>
                             <?php foreach($allCategories as $cat): ?>
                                 <option value="<?php echo $cat['id']; ?>" <?php echo $catId == $cat['id'] ? 'selected' : ''; ?>>
                                     <?php echo htmlspecialchars($cat['name']); ?>
@@ -82,9 +95,9 @@ ob_start();
                     <!-- Vehicle Compatibility -->
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Year</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" data-translate="year">Year</label>
                             <select name="year" id="year-select" class="input-modern bg-gray-50 text-sm">
-                                <option value="">Any Year</option>
+                                <option value="" data-translate="anyYear">Any Year</option>
                                 <?php for($y = date('Y') + 1; $y >= 1990; $y--): ?>
                                     <option value="<?php echo $y; ?>" <?php echo $year == $y ? 'selected' : ''; ?>>
                                         <?php echo $y; ?>
@@ -94,9 +107,9 @@ ob_start();
                         </div>
 
                         <div class="relative min-w-0">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Make</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" data-translate="make">Make</label>
                             <select name="make" id="make-select" class="input-modern bg-gray-50 text-sm truncate">
-                                <option value="">Select Make</option>
+                                <option value="" data-translate="selectMake">Select Make</option>
                                 <?php if($make): ?>
                                     <option value="<?php echo htmlspecialchars($make); ?>" selected><?php echo htmlspecialchars($make); ?></option>
                                 <?php endif; ?>
@@ -107,9 +120,9 @@ ob_start();
                         </div>
                         
                         <div class="relative min-w-0">
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Model</label>
+                            <label class="block text-sm font-medium text-gray-700 mb-2" data-translate="model">Model</label>
                             <select name="model" id="model-select" class="input-modern bg-gray-50 text-sm truncate">
-                                <option value="">Select Model</option>
+                                <option value="" data-translate="selectModel">Select Model</option>
                                 <?php if($model): ?>
                                     <option value="<?php echo htmlspecialchars($model); ?>" selected><?php echo htmlspecialchars($model); ?></option>
                                 <?php endif; ?>
@@ -122,33 +135,33 @@ ob_start();
 
                     <!-- Price Range -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Price Range (FCFA)</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2" data-translate="priceRange">Price Range (FCFA)</label>
                         <div class="grid grid-cols-2 gap-2">
-                            <input type="number" name="min_price" placeholder="Min" value="<?php echo htmlspecialchars($minPrice); ?>" class="input-modern py-2 text-sm">
-                            <input type="number" name="max_price" placeholder="Max" value="<?php echo htmlspecialchars($maxPrice); ?>" class="input-modern py-2 text-sm">
+                            <input type="number" name="min_price" placeholder="Min" data-translate-placeholder="min" value="<?php echo htmlspecialchars($minPrice); ?>" class="input-modern py-2 text-sm">
+                            <input type="number" name="max_price" placeholder="Max" data-translate-placeholder="max" value="<?php echo htmlspecialchars($maxPrice); ?>" class="input-modern py-2 text-sm">
                         </div>
                     </div>
 
                     <!-- Condition -->
                     <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Condition</label>
+                        <label class="block text-sm font-medium text-gray-700 mb-2" data-translate="condition">Condition</label>
                         <div class="space-y-2">
                             <label class="flex items-center">
                                 <input type="radio" name="condition" value="" <?php echo $condition === '' ? 'checked' : ''; ?> class="text-accent focus:ring-accent">
-                                <span class="ml-2 text-sm text-gray-600">Any</span>
+                                <span class="ml-2 text-sm text-gray-600" data-translate="any">Any</span>
                             </label>
                             <label class="flex items-center">
                                 <input type="radio" name="condition" value="new" <?php echo $condition === 'new' ? 'checked' : ''; ?> class="text-accent focus:ring-accent">
-                                <span class="ml-2 text-sm text-gray-600">New</span>
+                                <span class="ml-2 text-sm text-gray-600" data-translate="new">New</span>
                             </label>
                             <label class="flex items-center">
                                 <input type="radio" name="condition" value="used" <?php echo $condition === 'used' ? 'checked' : ''; ?> class="text-accent focus:ring-accent">
-                                <span class="ml-2 text-sm text-gray-600">Used</span>
+                                <span class="ml-2 text-sm text-gray-600" data-translate="used">Used</span>
                             </label>
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-primary w-full shadow-md mt-4">Apply Filters</button>
+                    <button type="submit" class="btn-primary w-full shadow-md mt-4" data-translate="applyFilters">Apply Filters</button>
                 </form>
             </div>
         </div>
@@ -162,11 +175,11 @@ ob_start();
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-2">No parts found</h3>
-                    <p class="text-gray-500 max-w-md mx-auto mb-8">
+                    <h3 class="text-xl font-bold text-gray-900 mb-2" data-translate="noPartsFound">No parts found</h3>
+                    <p class="text-gray-500 max-w-md mx-auto mb-8" data-translate="cantFindParts">
                         We couldn't find any parts matching your specific criteria. Try adjusting your filters or search for something else.
                     </p>
-                    <a href="index.php?page=search" class="btn-secondary inline-flex items-center">
+                    <a href="index.php?page=search" class="btn-secondary inline-flex items-center" data-translate="clearAllFilters">
                         Clear All Filters
                     </a>
                 </div>
@@ -226,6 +239,56 @@ ob_start();
                         </div>
                     <?php endforeach; ?>
                 </div>
+                
+                <!-- Pagination -->
+                <?php if ($totalPages > 1): ?>
+                <div class="mt-12 flex justify-center">
+                    <nav class="flex items-center gap-1">
+                        <?php 
+                        $queryParams = $_GET;
+                        $baseUrl = 'index.php?' . http_build_query(array_diff_key($queryParams, ['p' => '']));
+                        ?>
+                        
+                        <!-- Previous -->
+                        <?php if ($page > 1): ?>
+                            <a href="<?php echo $baseUrl . '&p=' . ($page - 1); ?>" class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            </a>
+                        <?php endif; ?>
+                        
+                        <!-- Page Numbers -->
+                        <?php
+                        $startPage = max(1, $page - 2);
+                        $endPage = min($totalPages, $page + 2);
+                        if ($startPage > 1): ?>
+                            <a href="<?php echo $baseUrl . '&p=1'; ?>" class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">1</a>
+                            <?php if ($startPage > 2): ?>
+                                <span class="px-2 text-gray-400">...</span>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                        
+                        <?php for ($i = $startPage; $i <= $endPage; $i++): ?>
+                            <a href="<?php echo $baseUrl . '&p=' . $i; ?>" class="px-4 py-2 rounded-lg border <?php echo $i == $page ? 'bg-accent text-white border-accent' : 'border-gray-200 text-gray-600 hover:bg-gray-50'; ?> transition-colors">
+                                <?php echo $i; ?>
+                            </a>
+                        <?php endfor; ?>
+                        
+                        <?php if ($endPage < $totalPages): ?>
+                            <?php if ($endPage < $totalPages - 1): ?>
+                                <span class="px-2 text-gray-400">...</span>
+                            <?php endif; ?>
+                            <a href="<?php echo $baseUrl . '&p=' . $totalPages; ?>" class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"><?php echo $totalPages; ?></a>
+                        <?php endif; ?>
+                        
+                        <!-- Next -->
+                        <?php if ($page < $totalPages): ?>
+                            <a href="<?php echo $baseUrl . '&p=' . ($page + 1); ?>" class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                            </a>
+                        <?php endif; ?>
+                    </nav>
+                </div>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>
@@ -251,6 +314,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (currentMake) {
         loadModels();
+    }
+    
+    // Mobile filter toggle
+    const filterToggle = document.getElementById('filter-toggle');
+    const filterPanel = document.getElementById('filter-panel');
+    const filterChevron = document.getElementById('filter-chevron');
+    
+    if (filterToggle && filterPanel) {
+        filterToggle.addEventListener('click', function() {
+            filterPanel.classList.toggle('hidden');
+            filterChevron.classList.toggle('rotate-180');
+        });
     }
 });
 

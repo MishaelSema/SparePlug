@@ -38,8 +38,14 @@ switch($page) {
     case 'verify-phone':
         include 'pages/auth/verify-phone.php';
         break;
+    case 'profile':
+        include 'pages/buyer/profile.php';
+        break;
     case 'vendor-signup':
         include 'pages/vendor/signup.php';
+        break;
+    case 'vendor-verify':
+        include 'pages/vendor/verify.php';
         break;
     case 'vendor-dashboard':
         include 'pages/vendor/dashboard.php';
@@ -68,6 +74,9 @@ switch($page) {
     case 'categories':
         include 'pages/buyer/categories.php';
         break;
+    case 'my-orders':
+        include 'pages/buyer/my-orders.php';
+        break;
     case 'about':
         include 'pages/about.php';
         break;
@@ -93,6 +102,12 @@ switch($page) {
     case 'vendor-inquiries':
         include 'pages/vendor/inquiries.php';
         break;
+    case 'vendor-orders':
+        include 'pages/vendor/orders.php';
+        break;
+    case 'order-detail':
+        include 'pages/buyer/order-detail.php';
+        break;
     case 'admin-dashboard':
         include 'pages/admin/dashboard.php';
         break;
@@ -110,6 +125,12 @@ switch($page) {
         break;
     case 'admin-analytics':
         include 'pages/admin/analytics.php';
+        break;
+    case 'admin-settings':
+        include 'pages/admin/settings.php';
+        break;
+    case 'admin-financials':
+        include 'pages/admin/financials.php';
         break;
     default:
         // 404 Page

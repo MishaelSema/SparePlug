@@ -1,5 +1,6 @@
 <?php
 require_once dirname(__DIR__) . '/config/database.php';
+require_once dirname(__DIR__) . '/includes/Mailer.php';
 
 class User {
     private $db;
@@ -152,18 +153,27 @@ class Product {
         }
         
         if (!empty($filters['year'])) {
-            $sql .= " AND JSON_EXTRACT(p.compatibility, '$.year') = ?";
+            $sql .= " AND (JSON_EXTRACT(p.compatibility, '$.year') = ? OR p.title LIKE ? OR p.description LIKE ?)";
+            $yearSearch = '%' . $filters['year'] . '%';
             $params[] = $filters['year'];
+            $params[] = $yearSearch;
+            $params[] = $yearSearch;
         }
 
         if (!empty($filters['make'])) {
-            $sql .= " AND JSON_EXTRACT(p.compatibility, '$.make') = ?";
+            $sql .= " AND (JSON_EXTRACT(p.compatibility, '$.make') = ? OR p.title LIKE ? OR p.description LIKE ?)";
+            $makeSearch = '%' . $filters['make'] . '%';
             $params[] = $filters['make'];
+            $params[] = $makeSearch;
+            $params[] = $makeSearch;
         }
 
         if (!empty($filters['model'])) {
-            $sql .= " AND JSON_EXTRACT(p.compatibility, '$.model') = ?";
+            $sql .= " AND (JSON_EXTRACT(p.compatibility, '$.model') = ? OR p.title LIKE ? OR p.description LIKE ?)";
+            $modelSearch = '%' . $filters['model'] . '%';
             $params[] = $filters['model'];
+            $params[] = $modelSearch;
+            $params[] = $modelSearch;
         }
         
         if (!empty($filters['min_price'])) {
@@ -191,6 +201,10 @@ class Product {
         return $result['total'];
     }
     
+    public function getTotal($filters = []) {
+        return $this->getCount($filters);
+    }
+    
     public function getAll($filters = []) {
         $sql = "SELECT p.*, c.name as category_name, vp.business_name, vp.city, vp.region, 
                        vp.is_verified, vp.subscription_plan,
@@ -207,7 +221,7 @@ class Product {
             $sql .= " AND p.vendor_id = ?";
             $params[] = $filters['vendor_id'];
         } else {
-            $sql .= " AND p.is_active = 1";
+            $sql .= " AND p.is_active = 1 AND vp.is_verified = 1";
         }
 
         if (isset($filters['featured'])) {
@@ -229,18 +243,27 @@ class Product {
         }
         
         if (!empty($filters['year'])) {
-            $sql .= " AND JSON_EXTRACT(p.compatibility, '$.year') = ?";
+            $sql .= " AND (JSON_EXTRACT(p.compatibility, '$.year') = ? OR p.title LIKE ? OR p.description LIKE ?)";
+            $yearSearch = '%' . $filters['year'] . '%';
             $params[] = $filters['year'];
+            $params[] = $yearSearch;
+            $params[] = $yearSearch;
         }
 
         if (!empty($filters['make'])) {
-            $sql .= " AND JSON_EXTRACT(p.compatibility, '$.make') = ?";
+            $sql .= " AND (JSON_EXTRACT(p.compatibility, '$.make') = ? OR p.title LIKE ? OR p.description LIKE ?)";
+            $makeSearch = '%' . $filters['make'] . '%';
             $params[] = $filters['make'];
+            $params[] = $makeSearch;
+            $params[] = $makeSearch;
         }
 
         if (!empty($filters['model'])) {
-            $sql .= " AND JSON_EXTRACT(p.compatibility, '$.model') = ?";
+            $sql .= " AND (JSON_EXTRACT(p.compatibility, '$.model') = ? OR p.title LIKE ? OR p.description LIKE ?)";
+            $modelSearch = '%' . $filters['model'] . '%';
             $params[] = $filters['model'];
+            $params[] = $modelSearch;
+            $params[] = $modelSearch;
         }
         
         if (!empty($filters['min_price'])) {
@@ -279,9 +302,14 @@ class Product {
                 case 'popular':
                     $sql .= " GROUP BY p.id ORDER BY p.views_count DESC";
                     break;
+                case 'random':
+                    $sql .= " GROUP BY p.id ORDER BY RAND()";
+                    break;
                 default:
                     $sql .= " GROUP BY p.id ORDER BY FIELD(vp.subscription_plan, 'premium', 'basic', 'free') ASC, avg_rating DESC, p.created_at DESC";
             }
+        } elseif (!empty($filters['random'])) {
+            $sql .= " GROUP BY p.id ORDER BY RAND()";
         } else {
             // Default ranking: Subscription Plan > Rating > Newest
             $sql .= " GROUP BY p.id ORDER BY FIELD(vp.subscription_plan, 'premium', 'basic', 'free') ASC, avg_rating DESC, p.created_at DESC";
@@ -615,6 +643,277 @@ class Notification {
     public function getUnreadCount($userId) {
         $res = $this->db->fetch("SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0", [$userId]);
         return $res['count'] ?? 0;
+    }
+}
+
+class Order {
+    private $db;
+    
+    public function __construct() {
+        global $db;
+        if (!isset($db) || $db === null) {
+            $db = new Database();
+        }
+        $this->db = $db;
+    }
+    
+    public function generateOrderNumber() {
+        return 'SP-' . strtoupper(uniqid()) . '-' . rand(100, 999);
+    }
+    
+    public function create($data) {
+        // Get vendor's commission rate - default to 10% if table doesn't exist
+        $commissionRate = 10;
+        try {
+            $vendor = $this->db->fetch(
+                "SELECT vp.subscription_plan, cr.rate FROM vendor_profiles vp 
+                 LEFT JOIN commission_rates cr ON vp.subscription_plan = cr.plan_type AND cr.is_active = 1
+                 WHERE vp.id = ?",
+                [$data['vendor_id']]
+            );
+            $commissionRate = $vendor['rate'] ?? 10;
+        } catch (Exception $e) {
+            // Table might not exist, use default 10%
+        }
+        
+        $commissionAmount = ($data['total_amount'] * $commissionRate) / 100;
+        $sellerAmount = $data['total_amount'] - $commissionAmount;
+        
+        $orderData = [
+            'order_number' => $this->generateOrderNumber(),
+            'buyer_id' => $data['buyer_id'],
+            'vendor_id' => $data['vendor_id'],
+            'product_id' => $data['product_id'],
+            'quantity' => $data['quantity'] ?? 1,
+            'unit_price' => $data['unit_price'],
+            'total_amount' => $data['total_amount'],
+            'payment_method' => $data['payment_method'] ?? 'momo',
+            'commission_rate' => $commissionRate,
+            'commission_amount' => $commissionAmount,
+            'seller_amount' => $sellerAmount,
+            'delivery_method' => $data['delivery_method'] ?? 'pickup',
+            'delivery_address' => $data['delivery_address'] ?? null,
+            'delivery_notes' => $data['delivery_notes'] ?? null
+        ];
+        
+        $orderId = $this->db->insert('orders', $orderData);
+        
+        if ($orderId) {
+            // Update product inquiries count
+            $this->db->query("UPDATE products SET inquiries_count = inquiries_count + 1 WHERE id = ?", [$data['product_id']]);
+            
+            // Notify vendor - wrapped in try-catch to not fail order
+            try {
+                Notification::send($this->getVendorUserId($data['vendor_id']), 'New order received! Order #' . $orderData['order_number'], 'success');
+            } catch (Exception $e) { error_log("Notification error: " . $e->getMessage()); }
+            
+            // Send email notifications - wrapped in try-catch
+            try {
+                $this->sendOrderEmails($orderId, $orderData);
+            } catch (Exception $e) { error_log("Email error: " . $e->getMessage()); }
+        }
+        
+        return $orderId;
+    }
+    
+    private function sendOrderEmails($orderId, $orderData) {
+        $mailer = new Mailer();
+        
+        // Get buyer info
+        $buyer = $this->db->fetch("SELECT first_name, email FROM users WHERE id = ?", [$orderData['buyer_id']]);
+        
+        // Get vendor info
+        $vendor = $this->db->fetch("SELECT business_name FROM vendor_profiles WHERE id = ?", [$orderData['vendor_id']]);
+        
+        // Send to buyer
+        if ($buyer) {
+            $mailer->sendOrderConfirmation($buyer['email'], $buyer['first_name'], $orderData['order_number'], $orderData['total_amount'], $vendor['business_name']);
+        }
+        
+        // Send to vendor
+        $vendorUser = $this->db->fetch("SELECT email FROM users WHERE id = (SELECT user_id FROM vendor_profiles WHERE id = ?)", [$orderData['vendor_id']]);
+        if ($vendorUser) {
+            $mailer->sendNewOrderNotification($vendorUser['email'], $vendor['business_name'], $orderData['order_number'], $orderData['total_amount']);
+        }
+        
+        // Notify admin
+        $admin = $this->db->fetch("SELECT email FROM users WHERE user_type = 'admin' LIMIT 1");
+        if ($admin) {
+            $mailer->sendAdminNewOrder($admin['email'], $orderData['order_number'], $orderData['total_amount'], $vendor['business_name']);
+        }
+    }
+    
+    private function getVendorUserId($vendorId) {
+        $vendor = $this->db->fetch("SELECT user_id FROM vendor_profiles WHERE id = ?", [$vendorId]);
+        return $vendor['user_id'] ?? null;
+    }
+    
+    public function getById($id) {
+        return $this->db->fetch(
+            "SELECT o.*, p.title as product_title, p.images as product_images,
+                    vp.business_name as vendor_name, vp.city as vendor_city,
+                    u.first_name as buyer_first_name, u.last_name as buyer_last_name,
+                    u.phone as buyer_phone
+             FROM orders o
+             JOIN products p ON o.product_id = p.id
+             JOIN vendor_profiles vp ON o.vendor_id = vp.id
+             JOIN users u ON o.buyer_id = u.id
+             WHERE o.id = ?",
+            [$id]
+        );
+    }
+    
+    public function getByBuyer($buyerId, $filters = []) {
+        $sql = "SELECT o.*, p.title as product_title, p.images as product_images,
+                       vp.business_name as vendor_name
+                FROM orders o
+                JOIN products p ON o.product_id = p.id
+                JOIN vendor_profiles vp ON o.vendor_id = vp.id
+                WHERE o.buyer_id = ?";
+        $params = [$buyerId];
+        
+        if (!empty($filters['status'])) {
+            $sql .= " AND o.fulfillment_status = ?";
+            $params[] = $filters['status'];
+        }
+        
+        $sql .= " ORDER BY o.created_at DESC";
+        return $this->db->fetchAll($sql, $params);
+    }
+    
+    public function getByVendor($vendorId, $filters = []) {
+        $sql = "SELECT o.*, p.title as product_title, p.images as product_images,
+                       u.first_name as buyer_first_name, u.last_name as buyer_last_name,
+                       u.phone as buyer_phone
+                FROM orders o
+                JOIN products p ON o.product_id = p.id
+                JOIN users u ON o.buyer_id = u.id
+                WHERE o.vendor_id = ?";
+        $params = [$vendorId];
+        
+        if (!empty($filters['status'])) {
+            $sql .= " AND o.fulfillment_status = ?";
+            $params[] = $filters['status'];
+        }
+        
+        $sql .= " ORDER BY o.created_at DESC";
+        return $this->db->fetchAll($sql, $params);
+    }
+    
+    public function updateStatus($orderId, $statusType, $newStatus, $note = null) {
+        $updateData = [];
+        $historyData = [];
+        
+        switch($statusType) {
+            case 'payment':
+                $updateData['payment_status'] = $newStatus;
+                if ($newStatus === 'paid') {
+                    $updateData['paid_at'] = date('Y-m-d H:i:s');
+                }
+                break;
+            case 'fulfillment':
+                $updateData['fulfillment_status'] = $newStatus;
+                if ($newStatus === 'delivered' || $newStatus === 'ready_for_pickup') {
+                    $updateData['delivered_at'] = date('Y-m-d H:i:s');
+                }
+                if ($newStatus === 'completed') {
+                    $updateData['buyer_confirmed'] = 1;
+                    $updateData['confirmed_at'] = date('Y-m-d H:i:s');
+                }
+                break;
+            case 'escrow':
+                $updateData['escrow_status'] = $newStatus;
+                if ($newStatus === 'released') {
+                    $updateData['released_at'] = date('Y-m-d H:i:s');
+                }
+                break;
+            case 'dispute':
+                $updateData['dispute_status'] = $newStatus;
+                if ($newStatus === 'resolved') {
+                    $updateData['resolved_at'] = date('Y-m-d H:i:s');
+                }
+                break;
+        }
+        
+        $this->db->update('orders', $updateData, 'id = ?', [$orderId]);
+        
+        // Add to history
+        $this->db->insert('order_status_history', [
+            'order_id' => $orderId,
+            'status_type' => $statusType,
+            'new_status' => $newStatus,
+            'note' => $note
+        ]);
+        
+        return true;
+    }
+    
+    public function confirmDelivery($orderId, $buyerId) {
+        $order = $this->getById($orderId);
+        
+        if (!$order || $order['buyer_id'] != $buyerId) {
+            return false;
+        }
+        
+        if ($order['fulfillment_status'] !== 'ready_for_pickup' && $order['fulfillment_status'] !== 'delivered') {
+            return false;
+        }
+        
+        // Update status
+        $this->updateStatus($orderId, 'fulfillment', 'completed');
+        
+        // Release escrow to vendor (in real app, this would transfer money)
+        $this->updateStatus($orderId, 'escrow', 'released');
+        
+        // Update product sales count
+        $this->db->query("UPDATE vendor_profiles SET total_sales = total_sales + 1 WHERE id = ?", [$order['vendor_id']]);
+        
+        $vendorUser = $this->db->fetch("SELECT u.email, vp.business_name FROM users u JOIN vendor_profiles vp ON u.id = vp.user_id WHERE vp.id = ?", [$order['vendor_id']]);
+        if ($vendorUser) {
+            $mailer = new Mailer();
+            $mailer->sendOrderCompleted($vendorUser['email'], $vendorUser['business_name'], $order['order_number'], $order['seller_amount']);
+        }
+        
+        return true;
+    }
+    
+    public function markAsPaid($orderId, $buyerId) {
+        $order = $this->getById($orderId);
+        
+        if (!$order || $order['buyer_id'] != $buyerId) {
+            return false;
+        }
+        
+        if ($order['payment_status'] !== 'pending') {
+            return false;
+        }
+        
+        $this->updateStatus($orderId, 'payment', 'paid');
+        
+        $vendorUser = $this->db->fetch("SELECT u.email, vp.business_name FROM users u JOIN vendor_profiles vp ON u.id = vp.user_id WHERE vp.id = ?", [$order['vendor_id']]);
+        if ($vendorUser) {
+            $mailer = new Mailer();
+            $mailer->sendPaymentConfirmed($vendorUser['email'], $vendorUser['business_name'], $order['order_number'], $order['total_amount']);
+        }
+        
+        Notification::send($this->getVendorUserId($order['vendor_id']), 'Payment confirmed for Order #' . $order['order_number'] . '. Please prepare for delivery.', 'info');
+        
+        return true;
+    }
+    
+    public function openDispute($orderId, $buyerId, $reason) {
+        $order = $this->getById($orderId);
+        
+        if (!$order || $order['buyer_id'] != $buyerId) {
+            return false;
+        }
+        
+        $this->db->update('orders', [
+            'dispute_status' => 'opened',
+            'dispute_reason' => $reason
+        ], 'id = ?', [$orderId]);
+        
+        return true;
     }
 }
 ?>

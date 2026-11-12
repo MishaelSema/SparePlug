@@ -110,11 +110,16 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'add_product') {
             $productId = $product->create($productData);
             
             if ($productId) {
-                // Send email notification to vendor
+                // Send email notification to vendor based on verification status
                 $mailer = new Mailer();
-                $mailer->sendProductNotification($_SESSION['email'], $vendorProfile['business_name'], $_POST['title']);
+                $isVerified = $vendorProfile['is_verified'] ?? false;
+                $mailer->sendProductNotification($_SESSION['email'], $vendorProfile['business_name'], $_POST['title'], $isVerified);
                 
-                $_SESSION['success'] = 'Product added successfully!';
+                if (!$isVerified) {
+                    $_SESSION['warning'] = 'Product added! Note: Your shop is pending verification. Products will be visible once approved.';
+                } else {
+                    $_SESSION['success'] = 'Product added successfully!';
+                }
                 header('Location: index.php?page=vendor-products');
                 exit;
             } else {

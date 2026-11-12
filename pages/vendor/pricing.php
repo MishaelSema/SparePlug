@@ -12,6 +12,14 @@ if (!$user->isLoggedIn() || !$user->isVendor()) {
 }
 
 $vendorProfile = $user->getVendorProfile();
+$isVerified = $vendorProfile['is_verified'] ?? false;
+
+// Only allow verified vendors to upgrade
+if (!$isVerified) {
+    $_SESSION['warning'] = 'You must verify your shop before upgrading your subscription plan.';
+    header('Location: index.php?page=vendor-verify');
+    exit;
+}
 
 // Handle subscription upgrade request
 if ($_POST && isset($_POST['action']) && $_POST['action'] === 'submit_payment') {
@@ -135,116 +143,128 @@ ob_start();
     </div>
     
     <!-- Pricing Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 mb-12">
         <!-- Free Plan -->
-        <div class="card p-8 relative">
-            <div class="text-center">
-                <h3 class="text-2xl font-bold text-gray-900 mb-2">Free</h3>
-                <p class="text-gray-600 mb-6">Perfect for getting started</p>
-                
-                <div class="mb-6">
-                    <span class="text-4xl font-bold text-gray-900">0</span>
-                    <span class="text-gray-600">FCFA</span>
-                    <span class="text-sm text-gray-500">/month</span>
-                </div>
-                
-                <ul class="space-y-3 mb-8 text-left">
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-gray-600">Up to 10 product listings</span>
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-gray-600">Basic seller profile</span>
-                    </li>
-                    <li class="flex items-center">
-                         <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-gray-600">Customer inquiries</span>
-                    </li>
-                </ul>
-                
-                <button class="btn-secondary w-full" disabled>
-                    Free Forever
-                </button>
+        <div class="card p-6 lg:p-8 relative flex flex-col">
+            <div class="text-center mb-6">
+                <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-2">Free</h3>
+                <p class="text-gray-600 text-sm lg:text-base">Perfect for getting started</p>
             </div>
+            
+            <div class="text-center mb-6">
+                <span class="text-3xl lg:text-4xl font-bold text-gray-900">0</span>
+                <span class="text-gray-600">FCFA</span>
+                <span class="text-sm text-gray-500">/month</span>
+            </div>
+            
+            <ul class="space-y-2 lg:space-y-3 mb-6 text-left flex-grow">
+                <li class="flex items-center text-sm lg:text-base">
+                    <svg class="w-5 h-5 text-success mr-2 lg:mr-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-600">Up to 10 product listings</span>
+                </li>
+                <li class="flex items-center text-sm lg:text-base">
+                    <svg class="w-5 h-5 text-success mr-2 lg:mr-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-600">Basic seller profile</span>
+                </li>
+                <li class="flex items-center text-sm lg:text-base">
+                    <svg class="w-5 h-5 text-success mr-2 lg:mr-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-600">Customer inquiries</span>
+                </li>
+            </ul>
+            
+            <button class="btn-secondary w-full py-2 lg:py-3" disabled>
+                Free Forever
+            </button>
         </div>
         
         <!-- Basic Plan -->
-        <div class="card p-8 relative border-2 border-primary">
-            <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                <span class="bg-primary text-white px-4 py-1 rounded-full text-sm font-medium">Most Popular</span>
+        <div class="card p-6 lg:p-8 relative border-2 lg:border-3 border-primary transform scale-100 md:scale-105 z-10 flex flex-col">
+            <div class="absolute -top-3 lg:-top-4 left-1/2 transform -translate-x-1/2">
+                <span class="bg-primary text-white px-3 lg:px-4 py-1 rounded-full text-xs lg:text-sm font-medium shadow-lg">Most Popular</span>
             </div>
             
-            <div class="text-center">
-                <h3 class="text-2xl font-bold text-gray-900 mb-2">Basic</h3>
-                <p class="text-gray-600 mb-6">Great for growing businesses</p>
-                
-                <div class="mb-6">
-                    <span class="text-4xl font-bold text-primary monthly-price">15,000</span>
-                    <span class="text-4xl font-bold text-primary annual-price hidden">150,000</span>
-                    <span class="text-gray-600">FCFA</span>
-                    <span class="text-sm text-gray-500">/month</span>
-                </div>
-                
-                <ul class="space-y-3 mb-8 text-left">
-                     <li class="flex items-center">
-                        <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-gray-600">Up to 50 product listings</span>
-                    </li>
-                    <li class="flex items-center">
-                        <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
-                             <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-gray-600">Featured product promotion</span>
-                    </li>
-                </ul>
-                
-                <button onclick="openPaymentModal('basic')" class="btn-primary w-full" <?php echo ($pendingSubscription) ? 'disabled' : ''; ?>>
-                    <?php echo ($pendingSubscription) ? 'Pending Approval' : 'Upgrade to Basic'; ?>
-                </button>
+            <div class="text-center mb-6">
+                <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-2">Basic</h3>
+                <p class="text-gray-600 text-sm lg:text-base">Great for growing businesses</p>
             </div>
+            
+            <div class="text-center mb-6">
+                <span class="text-3xl lg:text-4xl font-bold text-primary monthly-price">15,000</span>
+                <span class="text-3xl lg:text-4xl font-bold text-primary annual-price hidden">150,000</span>
+                <span class="text-gray-600">FCFA</span>
+                <span class="text-sm text-gray-500">/month</span>
+            </div>
+            
+            <ul class="space-y-2 lg:space-y-3 mb-6 text-left flex-grow">
+                <li class="flex items-center text-sm lg:text-base">
+                    <svg class="w-5 h-5 text-success mr-2 lg:mr-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-600">Up to 50 product listings</span>
+                </li>
+                <li class="flex items-center text-sm lg:text-base">
+                    <svg class="w-5 h-5 text-success mr-2 lg:mr-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-600">Featured product promotion</span>
+                </li>
+                <li class="flex items-center text-sm lg:text-base">
+                    <svg class="w-5 h-5 text-success mr-2 lg:mr-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-600">Priority support</span>
+                </li>
+            </ul>
+            
+            <button onclick="openPaymentModal('basic')" class="btn-primary w-full py-2 lg:py-3 <?php echo ($pendingSubscription) ? 'opacity-50 cursor-not-allowed' : ''; ?>" <?php echo ($pendingSubscription) ? 'disabled' : ''; ?>>
+                <?php echo ($pendingSubscription) ? 'Pending Approval' : 'Upgrade to Basic'; ?>
+            </button>
         </div>
         
         <!-- Premium Plan -->
-        <div class="card p-8 relative">
-            <div class="text-center">
-                <h3 class="text-2xl font-bold text-gray-900 mb-2">Premium</h3>
-                <p class="text-gray-600 mb-6">For established businesses</p>
-                
-                <div class="mb-6">
-                    <span class="text-4xl font-bold text-primary monthly-price">35,000</span>
-                    <span class="text-4xl font-bold text-primary annual-price hidden">350,000</span>
-                    <span class="text-gray-600">FCFA</span>
-                    <span class="text-sm text-gray-500">/month</span>
-                </div>
-                
-                <ul class="space-y-3 mb-8 text-left">
-                     <li class="flex items-center">
-                         <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-gray-600">Unlimited product listings</span>
-                    </li>
-                    <li class="flex items-center">
-                         <svg class="w-5 h-5 text-success mr-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
-                        </svg>
-                        <span class="text-gray-600">Advanced Analytics</span>
-                    </li>
-                </ul>
-                
-                <button onclick="openPaymentModal('premium')" class="btn-primary w-full" <?php echo ($pendingSubscription) ? 'disabled' : ''; ?>>
-                    <?php echo ($pendingSubscription) ? 'Pending Approval' : 'Upgrade to Premium'; ?>
-                </button>
+        <div class="card p-6 lg:p-8 relative flex flex-col">
+            <div class="text-center mb-6">
+                <h3 class="text-xl lg:text-2xl font-bold text-gray-900 mb-2">Premium</h3>
+                <p class="text-gray-600 text-sm lg:text-base">For established businesses</p>
             </div>
+            
+            <div class="text-center mb-6">
+                <span class="text-3xl lg:text-4xl font-bold text-primary monthly-price">35,000</span>
+                <span class="text-3xl lg:text-4xl font-bold text-primary annual-price hidden">350,000</span>
+                <span class="text-gray-600">FCFA</span>
+                <span class="text-sm text-gray-500">/month</span>
+            </div>
+            
+            <ul class="space-y-2 lg:space-y-3 mb-6 text-left flex-grow">
+                <li class="flex items-center text-sm lg:text-base">
+                    <svg class="w-5 h-5 text-success mr-2 lg:mr-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-600">Unlimited product listings</span>
+                </li>
+                <li class="flex items-center text-sm lg:text-base">
+                    <svg class="w-5 h-5 text-success mr-2 lg:mr-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-600">Advanced Analytics</span>
+                </li>
+                <li class="flex items-center text-sm lg:text-base">
+                    <svg class="w-5 h-5 text-success mr-2 lg:mr-3 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="text-gray-600">Dedicated account manager</span>
+                </li>
+            </ul>
+            
+            <button onclick="openPaymentModal('premium')" class="btn-primary w-full py-2 lg:py-3 <?php echo ($pendingSubscription) ? 'opacity-50 cursor-not-allowed' : ''; ?>" <?php echo ($pendingSubscription) ? 'disabled' : ''; ?>>
+                <?php echo ($pendingSubscription) ? 'Pending Approval' : 'Upgrade to Premium'; ?>
+            </button>
         </div>
     </div>
 </div>

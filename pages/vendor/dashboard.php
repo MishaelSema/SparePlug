@@ -28,6 +28,7 @@ if (!$vendorProfile) {
 }
 
 $vendorId = $vendorProfile['id'];
+$isVerified = $vendorProfile['is_verified'] ?? false;
 
 // Get dashboard statistics
 $stats = [
@@ -36,6 +37,31 @@ $stats = [
     'total_views' => $db->fetch("SELECT SUM(views_count) as count FROM products WHERE vendor_id = ?", [$vendorId])['count'] ?? 0,
     'featured_products' => $db->fetch("SELECT COUNT(*) as count FROM products WHERE vendor_id = ? AND is_featured = 1", [$vendorId])['count']
 ];
+
+// Order statistics
+$orderStats = [
+    'total_orders' => $db->fetch("SELECT COUNT(*) as count FROM orders WHERE vendor_id = ?", [$vendorId])['count'] ?? 0,
+    'pending_orders' => $db->fetch("SELECT COUNT(*) as count FROM orders WHERE vendor_id = ? AND fulfillment_status = 'pending'", [$vendorId])['count'] ?? 0,
+    'completed_orders' => $db->fetch("SELECT COUNT(*) as count FROM orders WHERE vendor_id = ? AND fulfillment_status = 'completed'", [$vendorId])['count'] ?? 0,
+    'total_revenue' => $db->fetch("SELECT SUM(seller_amount) as total FROM orders WHERE vendor_id = ? AND payment_status IN ('paid', 'released')", [$vendorId])['total'] ?? 0,
+    'pending_payments' => $db->fetch("SELECT SUM(total_amount) as total FROM orders WHERE vendor_id = ? AND payment_status = 'pending'", [$vendorId])['total'] ?? 0,
+    'escrow_held' => $db->fetch("SELECT SUM(seller_amount) as total FROM orders WHERE vendor_id = ? AND escrow_status = 'held'", [$vendorId])['total'] ?? 0
+];
+
+// Get recent orders
+$recentOrders = [];
+if ($orderStats['total_orders'] > 0) {
+    $recentOrders = $db->fetchAll("
+        SELECT o.*, p.title as product_title, p.images as product_images,
+               u.first_name as buyer_first_name, u.last_name as buyer_last_name, u.phone as buyer_phone
+        FROM orders o
+        JOIN products p ON o.product_id = p.id
+        JOIN users u ON o.buyer_id = u.id
+        WHERE o.vendor_id = ?
+        ORDER BY o.created_at DESC
+        LIMIT 5
+    ", [$vendorId]);
+}
 
 // Get recent inquiries
 $recentInquiries = $inquiry->getByVendor($vendorProfile['id']);
@@ -102,8 +128,87 @@ ob_start();
         </div>
     <?php endif; ?>
     
+    <!-- Verification Alert - Show if not verified -->
+    <?php 
+    $hasDocuments = !empty($vendorProfile['verification_documents']);
+    $isVerified = $vendorProfile['is_verified'] ?? false;
+    if (!$isVerified): ?>
+        <div class="mb-8">
+            <?php if ($hasDocuments): ?>
+                <!-- Documents submitted, awaiting review -->
+                <div class="card p-6 bg-blue-50 border-l-4 border-blue-500">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="h-6 w-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <p class="text-sm text-blue-800 font-medium">
+                                Verification Under Review
+                            </p>
+                            <p class="text-sm text-blue-700 mt-1">
+                                Your documents have been submitted. Review typically takes 2-3 business days.
+                            </p>
+                            <a href="index.php?page=vendor-verify" class="inline-flex items-center mt-3 text-sm font-semibold text-blue-800 hover:text-blue-900">
+                                <span>View Status</span>
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php else: ?>
+                <!-- No documents submitted yet -->
+                <div class="card p-6 bg-yellow-50 border-l-4 border-yellow-500">
+                    <div class="flex items-start">
+                        <div class="flex-shrink-0">
+                            <svg class="h-6 w-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3 flex-1">
+                            <p class="text-sm text-yellow-800 font-medium">
+                                Complete your verification to start selling!
+                            </p>
+                            <p class="text-sm text-yellow-700 mt-1">
+                                Upload your business registration document to get verified. Once approved, your products will be visible to buyers.
+                            </p>
+                            <a href="index.php?page=vendor-verify" class="inline-flex items-center mt-3 text-sm font-semibold text-yellow-800 hover:text-yellow-900">
+                                <span>Complete Verification</span>
+                                <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    <?php endif; ?>
+    
     <!-- Active Subscription Status (Only show if expiring soon or inactive, and not pending) -->
     <?php if ((!$isSubscriptionActive || $daysUntilExpiry <= 7) && !$pendingSubscription): ?>
+        <?php if (!$isVerified): ?>
+        <div class="mb-8">
+            <div class="card p-6 bg-gray-100 border border-gray-300">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2 text-gray-700">
+                            Subscription Upgrade Locked
+                        </h3>
+                        <p class="text-gray-600">
+                            You must verify your shop before upgrading your subscription plan.
+                        </p>
+                    </div>
+                    <a href="index.php?page=vendor-verify" class="bg-primary text-white px-6 py-2 rounded-lg font-medium hover:bg-red-700 transition-colors duration-200">
+                        Verify Now
+                    </a>
+                </div>
+            </div>
+        </div>
+        <?php else: ?>
         <div class="mb-8">
             <div class="card p-6 bg-gradient-to-r from-accent to-yellow-500 text-white">
                 <div class="flex items-center justify-between">
@@ -129,6 +234,7 @@ ob_start();
                 </div>
             </div>
         </div>
+        <?php endif; ?>
     <?php endif; ?>
     
     <!-- Statistics Cards -->
@@ -188,6 +294,35 @@ ob_start();
             </div>
         </div>
     </div>
+    
+    <!-- Financial Overview -->
+    <?php if ($orderStats['total_orders'] > 0): ?>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="card p-6 border-l-4 border-green-500">
+            <p class="text-sm font-medium text-gray-600">Total Revenue (Released)</p>
+            <p class="text-2xl font-bold text-green-600"><?php echo number_format($orderStats['total_revenue']); ?> XAF</p>
+            <p class="text-xs text-gray-500 mt-1">From <?php echo $orderStats['completed_orders']; ?> completed orders</p>
+        </div>
+        
+        <div class="card p-6 border-l-4 border-yellow-500">
+            <p class="text-sm font-medium text-gray-600">Pending Payments</p>
+            <p class="text-2xl font-bold text-yellow-600"><?php echo number_format($orderStats['pending_payments']); ?> XAF</p>
+            <p class="text-xs text-gray-500 mt-1">Awaiting buyer payment</p>
+        </div>
+        
+        <div class="card p-6 border-l-4 border-blue-500">
+            <p class="text-sm font-medium text-gray-600">In Escrow</p>
+            <p class="text-2xl font-bold text-blue-600"><?php echo number_format($orderStats['escrow_held']); ?> XAF</p>
+            <p class="text-xs text-gray-500 mt-1">Held until delivery confirmed</p>
+        </div>
+        
+        <div class="card p-6 border-l-4 border-purple-500">
+            <p class="text-sm font-medium text-gray-600">Active Orders</p>
+            <p class="text-2xl font-bold text-purple-600"><?php echo $orderStats['pending_orders']; ?></p>
+            <p class="text-xs text-gray-500 mt-1">Orders being processed</p>
+        </div>
+    </div>
+    <?php endif; ?>
     
     <div class="grid grid-cols-1 gap-8">
         <!-- Recent Products -->
@@ -265,6 +400,17 @@ ob_start();
                 <p class="text-sm text-gray-600">Edit and organize listings</p>
             </a>
             
+            <a href="index.php?page=vendor-orders" class="card p-6 hover:shadow-lg transition-all duration-200 text-center">
+                <div class="w-12 h-12 bg-accent rounded-lg flex items-center justify-center mx-auto mb-3">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                    </svg>
+                </div>
+                <h3 class="font-semibold text-gray-900">Orders</h3>
+                <p class="text-sm text-gray-600">Manage orders & revenue</p>
+            </a>
+            
+            <?php if ($isVerified): ?>
             <a href="index.php?page=vendor-pricing" class="card p-6 hover:shadow-lg transition-all duration-200 text-center">
                 <div class="w-12 h-12 bg-accent rounded-lg flex items-center justify-center mx-auto mb-3">
                     <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -274,6 +420,7 @@ ob_start();
                 <h3 class="font-semibold text-gray-900">Upgrade Plan</h3>
                 <p class="text-sm text-gray-600">Get more features</p>
             </a>
+            <?php endif; ?>
         </div>
     </div>
 </div>

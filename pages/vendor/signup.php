@@ -1,6 +1,7 @@
 <?php
 require_once 'config/database.php';
 require_once 'includes/functions.php';
+require_once 'includes/Mailer.php';
 
 $pageTitle = 'Become a Vendor';
 $user = new User();
@@ -125,7 +126,14 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'vendor_signup') {
                     $ext = pathinfo($_FILES['business_registration']['name'], PATHINFO_EXTENSION);
                     $filename = 'reg_pending_' . time() . '.' . $ext;
                     if (move_uploaded_file($_FILES['business_registration']['tmp_name'], $uploadDir . $filename)) {
-                         // $vendorData['registration_doc_url'] = $uploadDir . $filename;
+                        $vendorData['verification_documents'] = json_encode([
+                            'registration_doc' => $uploadDir . $filename,
+                            'uploaded_at' => date('Y-m-d H:i:s')
+                        ]);
+                        
+                        $tempMailer = new Mailer();
+                        $userEmail = $isLoggedIn ? $currentUser['email'] : $_POST['email'];
+                        $tempMailer->sendVerificationSubmitted($userEmail, $_POST['business_name']);
                     }
                 }
                 
@@ -367,6 +375,7 @@ ob_start();
                 <h3 class="text-lg font-semibold text-gray-900 mb-4">Verification Documents</h3>
                 <p class="text-sm text-gray-600 mb-4">
                     Upload your documents to get verified. This helps build trust with customers.
+                    Documents will be reviewed by our team before your shop goes live.
                 </p>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -398,14 +407,14 @@ ob_start();
                 </div>
                 
                 <div class="mt-4">
-                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                         <div class="flex items-start">
-                            <svg class="w-5 h-5 text-yellow-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                             </svg>
-                            <div class="text-sm text-yellow-800">
-                                <p class="font-medium mb-1">Document Upload Coming Soon</p>
-                                <p>Currently using placeholder for document uploads. You can add documents later from your dashboard after registration.</p>
+                            <div class="text-sm text-blue-800">
+                                <p class="font-medium mb-1">Get Verified</p>
+                                <p>Upload your business registration document. Our team will review it within 2-3 business days. You'll receive an email once approved.</p>
                             </div>
                         </div>
                     </div>

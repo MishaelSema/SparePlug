@@ -32,14 +32,17 @@ $totalCategories = $db->fetch("SELECT COUNT(*) as count FROM categories WHERE is
 // Recent users
 $recentUsers = $db->fetchAll("SELECT * FROM users ORDER BY created_at DESC LIMIT 5");
 
-// Recent vendors waiting for approval
+// Recent vendors waiting for approval (only those who submitted documents)
 $pendingVendors = $db->fetchAll("
     SELECT vp.*, u.email, u.phone, u.first_name, u.last_name
     FROM vendor_profiles vp 
     JOIN users u ON vp.user_id = u.id 
-    WHERE vp.is_verified = 0 
+    WHERE vp.is_verified = 0 AND vp.verification_documents IS NOT NULL
     ORDER BY vp.created_at DESC LIMIT 5
 ");
+
+// Count of pending verifications
+$pendingVerificationCount = $db->fetch("SELECT COUNT(*) as count FROM vendor_profiles WHERE is_verified = 0 AND verification_documents IS NOT NULL")['count'] ?? 0;
 
 ob_start();
 ?>
@@ -81,6 +84,24 @@ ob_start();
                     </svg>
                 </div>
             </div>
+        </div>
+        
+        <!-- Pending Verifications Card -->
+        <div class="card p-6 border-none shadow-soft bg-white rounded-3xl <?php echo $pendingVerificationCount > 0 ? 'border-l-4 border-yellow-500' : ''; ?>">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">Pending Verifications</p>
+                    <p class="text-3xl font-bold <?php echo $pendingVerificationCount > 0 ? 'text-yellow-600' : 'text-gray-900'; ?>"><?php echo $pendingVerificationCount; ?></p>
+                </div>
+                <div class="w-12 h-12 <?php echo $pendingVerificationCount > 0 ? 'bg-yellow-100' : 'bg-gray-100'; ?> rounded-2xl flex items-center justify-center">
+                    <svg class="w-6 h-6 <?php echo $pendingVerificationCount > 0 ? 'text-yellow-600' : 'text-gray-400'; ?>" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+            </div>
+            <?php if ($pendingVerificationCount > 0): ?>
+                <a href="index.php?page=admin-users" class="text-xs text-yellow-600 hover:text-yellow-800 font-medium mt-2 inline-block">Review now →</a>
+            <?php endif; ?>
         </div>
 
         <!-- Total Products Card -->

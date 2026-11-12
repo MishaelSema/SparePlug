@@ -55,19 +55,24 @@ class Database {
     public function insert($table, $data) {
         $keys = array_keys($data);
         $columns = '`' . implode('`,`', $keys) . '`';
-        $placeholders = ':' . implode(', :', $keys);
+        
+        // Use ? placeholders instead of named for compatibility
+        $placeholders = implode(', ', array_fill(0, count($keys), '?'));
         $sql = "INSERT INTO {$table} ({$columns}) VALUES ({$placeholders})";
         
         $stmt = $this->connection->prepare($sql);
         
+        // Get values in same order as keys
+        $values = array_values($data);
+        
         // Sanitize booleans for MySQL strict mode
-        foreach($data as $key => $value) {
+        foreach($values as $key => $value) {
             if (is_bool($value)) {
-                $data[$key] = $value ? 1 : 0;
+                $values[$key] = $value ? 1 : 0;
             }
         }
         
-        $stmt->execute($data);
+        $stmt->execute($values);
         return $this->connection->lastInsertId();
     }
     

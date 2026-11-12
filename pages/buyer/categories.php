@@ -16,10 +16,10 @@ ob_start();
     </div>
     <div class="relative max-w-7xl mx-auto py-16 px-4 sm:py-20 sm:px-6 lg:px-8">
         <div class="text-center">
-            <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl font-heading mb-4">
+            <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl lg:text-6xl font-heading mb-4" data-translate="exploreAutoParts">
                 Explore Auto Parts
             </h1>
-            <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500">
+            <p class="mt-4 max-w-2xl mx-auto text-xl text-gray-500" data-translate="browseCatalog">
                 Browse our comprehensive catalog of high-quality spare parts for every vehicle make and model.
             </p>
         </div>
@@ -49,7 +49,7 @@ ob_start();
                 </p>
                 <?php endif; ?>
                 
-                <div class="mt-4 flex items-center text-xs font-bold text-accent uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                <div class="mt-4 flex items-center text-xs font-bold text-accent uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity duration-500" data-translate="browseCatalogLink">
                     Browse Catalog →
                 </div>
             </div>
@@ -65,12 +65,12 @@ ob_start();
             <div class="pt-10 pb-12 px-6 sm:pt-16 sm:px-16 lg:py-16 lg:pr-0 xl:py-20 xl:px-20">
                 <div class="lg:self-center">
                     <h2 class="text-3xl font-extrabold text-white sm:text-4xl">
-                        <span class="block">Cant find what you need?</span>
+                        <span class="block" data-translate="cantFindWhat">Cant find what you need?</span>
                     </h2>
-                    <p class="mt-4 text-lg leading-6 text-indigo-100">
+                    <p class="mt-4 text-lg leading-6 text-indigo-100" data-translate="vendorsAddDaily">
                         Our verified vendors add new parts daily. Use our advanced search or contact support for help.
                     </p>
-                    <a href="index.php?page=search" class="mt-8 bg-white border border-transparent rounded-lg shadow px-6 py-3 inline-flex items-center text-base font-medium text-primary hover:bg-gray-50 transition-colors">
+                    <a href="index.php?page=search" class="mt-8 bg-white border border-transparent rounded-lg shadow px-6 py-3 inline-flex items-center text-base font-medium text-primary hover:bg-gray-50 transition-colors" data-translate="searchAllParts">
                         Search All Parts
                     </a>
                 </div>

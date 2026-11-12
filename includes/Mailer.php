@@ -193,14 +193,127 @@ class Mailer {
 
     /**
      * Email: Product Creation Notification
+     * Updated: Now includes verification status context
      */
-    public function sendProductNotification($to, $vendorName, $productTitle) {
-        $subject = "Your Product is Live on SparePlug!";
+    public function sendProductNotification($to, $vendorName, $productTitle, $isVerified = true) {
+        if ($isVerified) {
+            $subject = "Your Product is Live on SparePlug!";
+            $content = "
+                <p>Hello {$vendorName},</p>
+                <p>Great news! Your product <strong>'{$productTitle}'</strong> has been successfully listed and is now visible to thousands of buyers.</p>
+                <div class='badge badge-success'>Live & Active</div>
+                <p>You can manage your listing from your vendor dashboard.</p>
+                <p>Keep your products updated to attract more buyers!</p>";
+        } else {
+            $subject = "Product Added - Awaiting Verification";
+            $content = "
+                <p>Hello {$vendorName},</p>
+                <p>Your product <strong>'{$productTitle}'</strong> has been added to your inventory.</p>
+                <div class='badge badge-warning'>Pending Verification</div>
+                <p>Note: Your shop is currently under verification review. Once approved, your products will become visible to buyers.</p>
+                <p>Check your vendor dashboard for more details.</p>";
+        }
+        return $this->send($to, $subject, $content);
+    }
+
+    /**
+     * Email: Vendor Verification Submitted
+     */
+    public function sendVerificationSubmitted($to, $vendorName) {
+        $subject = "Verification Documents Received - SparePlug";
         $content = "
             <p>Hello {$vendorName},</p>
-            <p>Great news! Your product <strong>'{$productTitle}'</strong> has been successfully listed and is now visible to thousands of buyers.</p>
-            <div class='badge badge-success'>Live & Active</div>
-            <p>You can manage your listing from your vendor dashboard.</p>";
+            <p>We have received your verification documents. Our team will review them within <strong>2-3 business days</strong>.</p>
+            <div class='badge badge-info'>Under Review</div>
+            <p>You can still add products to your inventory, but they won't be visible to buyers until your shop is verified.</p>
+            <p>You'll receive an email once your verification is approved.</p>
+            <p>If you have any questions, please contact our support team.</p>";
+        return $this->send($to, $subject, $content);
+    }
+
+    /**
+     * Email: Vendor Verified (Approved)
+     */
+    public function sendVerificationApproved($to, $vendorName) {
+        $subject = "Congratulations! Your Shop is Verified - SparePlug";
+        $content = "
+            <p>Hello {$vendorName},</p>
+            <p>🎉 <strong>Great news!</strong> Your shop has been verified and approved!</p>
+            <div class='badge badge-success'>Verified ✓</div>
+            <p>Your products are now visible to all buyers on SparePlug. You can start receiving orders and grow your business!</p>
+            <p><strong>What's next:</strong></p>
+            <ul>
+                <li>Add more products to your inventory</li>
+                <li>Complete your shop profile with business details</li>
+                <li>Consider upgrading to Premium for more features</li>
+            </ul>
+            <p>Log in to your vendor dashboard to get started.</p>";
+        return $this->send($to, $subject, $content);
+    }
+
+    /**
+     * Email: Vendor Verification Rejected
+     */
+    public function sendVerificationRejected($to, $vendorName, $reason = '') {
+        $subject = "Verification Update - SparePlug";
+        $content = "
+            <p>Hello {$vendorName},</p>
+            <p>We regret to inform you that your verification documents could not be approved at this time.</p>
+            <div class='badge badge-danger'>Not Approved</div>
+            " . ($reason ? "<p><strong>Reason:</strong> {$reason}</p>" : "<p>Please review your documents and resubmit.</p>") . "
+            <p>To retry the verification process:</p>
+            <ol>
+                <li>Log in to your vendor dashboard</li>
+                <li>Go to Profile Settings</li>
+                <li>Upload clearer/valid business documents</li>
+                <li>Submit for re-review</li>
+            </ol>
+            <p>If you believe this is an error, please contact our support team.</p>";
+        return $this->send($to, $subject, $content);
+    }
+
+    /**
+     * Email: Payment Confirmed (Buyer marked as paid)
+     */
+    public function sendPaymentConfirmed($to, $vendorName, $orderNumber, $amount) {
+        $subject = "Payment Received - Order #{$orderNumber}";
+        $content = "
+            <p>Hello {$vendorName},</p>
+            <p>Good news! The buyer has confirmed payment for Order <strong>#{$orderNumber}</strong>.</p>
+            <div class='badge badge-success'>Payment Confirmed</div>
+            <p><strong>Amount:</strong> " . number_format($amount) . " XAF</p>
+            <p>Please prepare the order for delivery/pickup as soon as possible.</p>
+            <p>Log in to your vendor dashboard to manage this order.</p>";
+        return $this->send($to, $subject, $content);
+    }
+
+    /**
+     * Email: Order Completed (Buyer confirmed receipt)
+     */
+    public function sendOrderCompleted($to, $vendorName, $orderNumber, $amount) {
+        $subject = "Order Completed - #{$orderNumber}";
+        $content = "
+            <p>Hello {$vendorName},</p>
+            <p>The buyer has confirmed receipt of Order <strong>#{$orderNumber}</strong>. 🎉</p>
+            <div class='badge badge-success'>Completed</div>
+            <p><strong>Order Amount:</strong> " . number_format($amount) . " XAF</p>
+            <p>Payment has been released to your account (minus platform commission).</p>
+            <p>Thank you for doing business on SparePlug!</p>";
+        return $this->send($to, $subject, $content);
+    }
+
+    /**
+     * Email: Order Disputed
+     */
+    public function sendOrderDisputed($to, $vendorName, $orderNumber, $reason) {
+        $subject = "Order Dispute - #{$orderNumber}";
+        $content = "
+            <p>Hello {$vendorName},</p>
+            <p>A dispute has been opened for Order <strong>#{$orderNumber}</strong>.</p>
+            <div class='badge badge-danger'>Disputed</div>
+            <p><strong>Reason:</strong> {$reason}</p>
+            <p>Please respond to this dispute through your vendor dashboard as soon as possible.</p>
+            <p>Our team will help resolve this matter.</p>";
         return $this->send($to, $subject, $content);
     }
 
@@ -250,6 +363,84 @@ class Mailer {
                 <p style='font-style: italic; margin: 0;'>\"{$message}\"</p>
             </div>
             <p>Check your dashboard to respond to this message!</p>";
+        return $this->send($to, $subject, $content);
+    }
+    
+    /**
+     * Email: Admin Notification with type-based styling
+     */
+    public function sendAdminNotification($to, $name, $message, $type = 'info') {
+        $subject = "New Notification from SparePlug Admin";
+        
+        $typeColors = [
+            'info' => ['bg' => '#eff6ff', 'border' => '#2563eb', 'text' => '#1d4ed8', 'label' => 'Information'],
+            'success' => ['bg' => '#ecfdf5', 'border' => '#059669', 'text' => '#047857', 'label' => 'Success'],
+            'warning' => ['bg' => '#fffbeb', 'border' => '#d97706', 'text' => '#b45309', 'label' => 'Attention Required'],
+            'error' => ['bg' => '#fef2f2', 'border' => '#dc2626', 'text' => '#b91c1c', 'label' => 'Action Required']
+        ];
+        
+        $colors = $typeColors[$type] ?? $typeColors['info'];
+        
+        $content = "
+            <p>Hello <strong>{$name}</strong>,</p>
+            <p>You have received a new notification from the SparePlug administration team:</p>
+            <div style='background: {$colors['bg']}; padding: 20px; border-radius: 12px; border-left: 4px solid {$colors['border']}; margin: 20px 0;'>
+                <span style='display: inline-block; padding: 4px 12px; background: {$colors['border']}; color: white; border-radius: 99px; font-size: 11px; font-weight: bold; text-transform: uppercase; margin-bottom: 10px;'>{$colors['label']}</span>
+                <p style='margin: 0; color: {$colors['text']}; font-size: 16px;'>{$message}</p>
+            </div>
+            <p>Log in to your dashboard for more details.</p>
+            <p>Thank you,<br>The SparePlug Team</p>";
+        return $this->send($to, $subject, $content);
+    }
+    
+    /**
+     * Email: Order Confirmation to Buyer
+     */
+    public function sendOrderConfirmation($to, $buyerName, $orderNumber, $amount, $vendorName) {
+        $subject = "Order Confirmed - #{$orderNumber}";
+        $content = "
+            <p>Hello <strong>{$buyerName}</strong>,</p>
+            <p>Your order has been placed successfully!</p>
+            <div style='background: #f9fafb; padding: 20px; border-radius: 12px; margin: 20px 0;'>
+                <p style='margin: 0 0 10px 0;'><strong>Order #:</strong> {$orderNumber}</p>
+                <p style='margin: 0 0 10px 0;'><strong>Amount:</strong> " . number_format($amount) . " XAF</p>
+                <p style='margin: 0;'><strong>Seller:</strong> {$vendorName}</p>
+            </div>
+            <p>Please complete your payment to proceed. Your money is held securely in escrow until you confirm receipt of your order.</p>
+            <p>Thank you for shopping with SparePlug!</p>";
+        return $this->send($to, $subject, $content);
+    }
+    
+    /**
+     * Email: New Order Notification to Vendor
+     */
+    public function sendNewOrderNotification($to, $vendorName, $orderNumber, $amount) {
+        $subject = "New Order Received - #{$orderNumber}";
+        $content = "
+            <p>Hello <strong>{$vendorName}</strong>,</p>
+            <p>You have received a new order!</p>
+            <div style='background: #f9fafb; padding: 20px; border-radius: 12px; margin: 20px 0;'>
+                <p style='margin: 0 0 10px 0;'><strong>Order #:</strong> {$orderNumber}</p>
+                <p style='margin: 0;'><strong>Amount:</strong> " . number_format($amount) . " XAF</p>
+            </div>
+            <p>Log in to your vendor dashboard to view order details and proceed with fulfillment.</p>";
+        return $this->send($to, $subject, $content);
+    }
+    
+    /**
+     * Email: New Order Alert to Admin
+     */
+    public function sendAdminNewOrder($to, $orderNumber, $amount, $vendorName) {
+        $subject = "New Order on SparePlug - #{$orderNumber}";
+        $content = "
+            <p>Hello Admin,</p>
+            <p>A new order has been placed on the platform.</p>
+            <div style='background: #f9fafb; padding: 20px; border-radius: 12px; margin: 20px 0;'>
+                <p style='margin: 0 0 10px 0;'><strong>Order #:</strong> {$orderNumber}</p>
+                <p style='margin: 0 0 10px 0;'><strong>Amount:</strong> " . number_format($amount) . " XAF</p>
+                <p style='margin: 0;'><strong>Vendor:</strong> {$vendorName}</p>
+            </div>
+            <p>Log in to admin dashboard to monitor.</p>";
         return $this->send($to, $subject, $content);
     }
 }

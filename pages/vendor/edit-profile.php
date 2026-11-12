@@ -84,6 +84,21 @@ if ($_POST && isset($_POST['action']) && $_POST['action'] === 'update_profile') 
                 }
             }
             
+            // Handle Business Registration Document Upload
+            if (isset($_FILES['business_registration']) && $_FILES['business_registration']['error'] === 0) {
+                $uploadDir = 'uploads/documents/';
+                if (!is_dir($uploadDir)) mkdir($uploadDir, 0777, true);
+                $ext = pathinfo($_FILES['business_registration']['name'], PATHINFO_EXTENSION);
+                $filename = 'reg_update_' . $vendorProfile['id'] . '_' . time() . '.' . $ext;
+                if (move_uploaded_file($_FILES['business_registration']['tmp_name'], $uploadDir . $filename)) {
+                    $existingDocs = !empty($vendorProfile['verification_documents']) ? json_decode($vendorProfile['verification_documents'], true) : [];
+                    $existingDocs['registration_doc'] = $uploadDir . $filename;
+                    $existingDocs['uploaded_at'] = date('Y-m-d H:i:s');
+                    $existingDocs['reuploaded'] = true;
+                    $updateData['verification_documents'] = json_encode($existingDocs);
+                }
+            }
+            
             $user->updateVendorProfile($updateData);
             
             $_SESSION['vendor_success'] = 'Profile updated successfully!';
@@ -196,6 +211,66 @@ ob_start();
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Verification Documents Section -->
+                <?php 
+                $hasExistingDocs = !empty($vendorProfile['verification_documents']);
+                $existingDocs = $hasExistingDocs ? json_decode($vendorProfile['verification_documents'], true) : null;
+                ?>
+                <div class="mt-8 pt-6 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Verification Documents</h3>
+                    
+                    <?php if ($hasExistingDocs): ?>
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                            <div class="flex items-center">
+                                <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <span class="text-green-800 font-medium">Documents uploaded</span>
+                            </div>
+                            <?php if ($existingDocs && !empty($existingDocs['uploaded_at'])): ?>
+                                <p class="text-sm text-green-700 mt-1">Submitted on <?php echo date('F j, Y', strtotime($existingDocs['uploaded_at'])); ?></p>
+                            <?php endif; ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <p class="text-sm text-gray-600 mb-4">
+                        Upload your business registration document to get verified. 
+                        <?php if (!$vendorProfile['is_verified']): ?>
+                            Once verified, your products will be visible to buyers.
+                        <?php else: ?>
+                            Your shop is verified and customers can see your verified badge.
+                        <?php endif; ?>
+                    </p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div class="border-2 border-dashed border-gray-300 rounded-2xl p-6 text-center hover:border-accent transition-all cursor-pointer bg-white group" onclick="document.getElementById('reg-upload').click()">
+                                <svg class="w-10 h-10 text-gray-300 mx-auto mb-2 group-hover:text-accent transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                <p class="text-sm font-bold text-gray-700">Business Registration Document</p>
+                                <p class="text-[10px] text-gray-400 mt-1">PDF or Image, Max 5MB</p>
+                                <input type="file" name="business_registration" accept=".pdf,image/*" class="hidden" id="reg-upload" onchange="updateFileName(this, 'reg-name')">
+                                <p id="reg-name" class="text-xs text-accent mt-2 font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <?php if (!$vendorProfile['is_verified']): ?>
+                        <div class="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <div class="flex items-start">
+                                <svg class="w-5 h-5 text-blue-600 mt-0.5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                <div class="text-sm text-blue-800">
+                                    <p class="font-medium mb-1">Verification Process</p>
+                                    <p>Our team will review your documents within 2-3 business days. You'll receive an email once approved.</p>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -371,6 +446,14 @@ ob_start();
         </form>
     </div>
 </div>
+
+<script>
+function updateFileName(input, displayId) {
+    if (input.files && input.files[0]) {
+        document.getElementById(displayId).textContent = input.files[0].name;
+    }
+}
+</script>
 
 <?php
 $content = ob_get_clean();

@@ -3,7 +3,7 @@
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'spareplug_db');
 define('DB_USER', 'root');
-define('DB_PASS', '1Mish@elSem@');
+define('DB_PASS', '');
 
 // Application configuration
 define('APP_NAME', 'SparePlug');
